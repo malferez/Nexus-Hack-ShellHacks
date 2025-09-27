@@ -104,17 +104,24 @@ const Dashboard: React.FC<DashboardProps> = ({
             <div className="mb-8">
               <h3 className="text-xl font-semibold text-shell-accent mb-4">Your Top AI-Powered Matches</h3>
               <div className="space-y-4">
-                {matches.map(match => (
-                    <ParticipantCard 
-                        key={match.id} 
-                        user={availableUsers.find(u => u.id === match.id)!} 
-                        onInvite={handleInvite} 
-                        isTeamFull={isTeamFull}
-                        isInvited={false}
-                        isMatch={true}
-                        matchJustification={match.justification}
-                    />
-                ))}
+                {matches.map(match => {
+                    const user = availableUsers.find(u => u.id === match.id);
+                    if (!user) {
+                        console.warn(`AI match with ID ${match.id} not found in available users.`);
+                        return null;
+                    }
+                    return (
+                        <ParticipantCard 
+                            key={match.id} 
+                            user={user} 
+                            onInvite={handleInvite} 
+                            isTeamFull={isTeamFull}
+                            isInvited={false}
+                            isMatch={true}
+                            matchJustification={match.justification}
+                        />
+                    );
+                })}
               </div>
             </div>
           )}
