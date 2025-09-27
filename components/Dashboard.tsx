@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import type { User, Match } from '../types';
 import { findTopMatches } from '../services/geminiService';
 import MyTeam from './MyTeam';
@@ -34,7 +34,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   error,
   setError,
 }) => {
-    
+  const [searchTerm, setSearchTerm] = useState('');
+
   const handleFindMatches = async () => {
     setIsLoadingMatches(true);
     setError(null);
@@ -49,6 +50,19 @@ const Dashboard: React.FC<DashboardProps> = ({
       setIsLoadingMatches(false);
     }
   };
+  
+  const filteredUsers = useMemo(() => {
+    if (!searchTerm) {
+      return availableUsers;
+    }
+    const lowercasedFilter = searchTerm.toLowerCase();
+    return availableUsers.filter(user =>
+      user.name.toLowerCase().includes(lowercasedFilter) ||
+      user.major.toLowerCase().includes(lowercasedFilter) ||
+      user.skills.some(skill => skill.toLowerCase().includes(lowercasedFilter))
+    );
+  }, [availableUsers, searchTerm]);
+
 
   const isTeamFull = myTeam.length >= TEAM_SIZE_LIMIT;
 
@@ -59,7 +73,12 @@ const Dashboard: React.FC<DashboardProps> = ({
       </div>
       <div className="lg:col-span-2">
         <div className="bg-shell-card p-6 rounded-lg shadow-2xl">
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center border-b border-fiu-blue pb-4 mb-4">
+          <div className="border-b border-fiu-blue pb-4 mb-6">
+            <h2 className="text-xl font-bold text-shell-text">Current Event: <span className="text-shell-accent">ShellHacks 2024</span></h2>
+            <p className="text-shell-text-secondary">Welcome, {currentUser.name}. Let's find you a team!</p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center border-b border-fiu-blue/50 pb-4 mb-4">
             <h2 className="text-2xl font-bold text-shell-text mb-2 sm:mb-0">Find Teammates</h2>
             <button
               onClick={handleFindMatches}
@@ -101,9 +120,18 @@ const Dashboard: React.FC<DashboardProps> = ({
           )}
 
           <div>
-              <h3 className="text-xl font-semibold text-shell-text mb-4">{matches.length > 0 ? "Other Available Hackers" : "Available Hackers"}</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold text-shell-text">{matches.length > 0 ? "Other Available Hackers" : "Available Hackers"}</h3>
+                <input
+                    type="text"
+                    placeholder="Search by name, skill..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="bg-shell-bg border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent w-1/2"
+                />
+              </div>
               <div className="space-y-4">
-                {availableUsers
+                {filteredUsers
                     .filter(user => !matches.some(match => match.id === user.id))
                     .map(user => {
                         const isInvited = myTeam.some(member => member.id === user.id);

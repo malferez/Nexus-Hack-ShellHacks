@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import type { User } from '../types';
 import { getProjectIdeas } from '../services/geminiService';
@@ -53,6 +52,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onOnboardingComplete }) => {
       skills: formData.skills.split(',').map(s => s.trim()).filter(Boolean),
       interests: formData.interests,
       projectIdea: formData.projectIdea,
+      // Fix: Add missing properties to satisfy the User type.
+      email: '',
+      academicYear: 'Freshman',
+      isOpenToTeams: true,
     };
     onOnboardingComplete(newUser);
   };

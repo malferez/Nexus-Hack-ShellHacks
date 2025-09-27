@@ -2,6 +2,7 @@
 import React from 'react';
 import type { User } from '../types';
 import { TEAM_SIZE_LIMIT } from '../constants';
+import { Avatar } from './Avatar';
 
 interface MyTeamProps {
   myTeam: User[];
@@ -23,13 +24,16 @@ const MyTeam: React.FC<MyTeamProps> = ({ myTeam, handleLeaveTeam }) => {
           if (member) {
             return (
               <div key={member.id} className="bg-shell-bg p-3 rounded-md flex items-center justify-between transition-all duration-300">
-                <div>
-                  <p className="font-bold text-shell-text">{member.name} {index === 0 ? '(You)' : ''}</p>
-                  <p className="text-sm text-shell-text-secondary">{member.major}</p>
+                <div className="flex items-center space-x-3">
+                    <Avatar src={member.profilePictureUrl} name={member.name} />
+                    <div>
+                        <p className="font-bold text-shell-text">{member.name} {index === 0 ? '(You)' : ''}</p>
+                        <p className="text-sm text-shell-text-secondary">{member.major}</p>
+                    </div>
                 </div>
                 {index !== 0 && (
-                  <button onClick={() => handleLeaveTeam(member.id)} className="text-red-400 hover:text-red-300 text-xs font-semibold">
-                    LEAVE
+                  <button onClick={() => handleLeaveTeam(member.id)} className="text-red-400 hover:text-red-300 text-xs font-semibold uppercase tracking-wider">
+                    Remove
                   </button>
                 )}
               </div>

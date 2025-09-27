@@ -1,11 +1,16 @@
 
 export interface User {
   id: number;
-  name: string;
+  name:string;
+  email: string;
+  password?: string; // Only used for registration, should not be stored in client state
   major: string;
+  academicYear: 'Freshman' | 'Sophomore' | 'Junior' | 'Senior' | 'Graduate';
   skills: string[];
   interests: string;
   projectIdea: string;
+  profilePictureUrl?: string; // base64 URL
+  isOpenToTeams: boolean;
 }
 
 export interface Match {
