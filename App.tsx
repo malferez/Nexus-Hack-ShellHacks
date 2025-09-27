@@ -7,9 +7,10 @@ import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import Profile from './components/Profile';
 import TeamChat from './components/TeamChat';
+import ProjectIdeaGenerator from './components/ProjectIdeaGenerator';
 import { TEAM_SIZE_LIMIT } from './constants';
 
-type View = 'auth' | 'dashboard' | 'profile' | 'teamChat';
+type View = 'auth' | 'dashboard' | 'profile' | 'teamChat' | 'projectIdeaGenerator';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -96,7 +97,9 @@ const App: React.FC = () => {
         case 'profile':
             return <Profile user={currentUser} onUserUpdate={handleUserUpdate} onLogout={handleLogout} />;
         case 'teamChat':
-            return <TeamChat myTeam={myTeam} />;
+            return <TeamChat myTeam={myTeam} currentUser={currentUser} />;
+        case 'projectIdeaGenerator':
+            return <ProjectIdeaGenerator />;
         default:
              return <Auth onLoginSuccess={handleLoginSuccess} />;
     }

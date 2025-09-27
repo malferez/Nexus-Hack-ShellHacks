@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import type { User, Match } from '../types';
 import { findTopMatches } from '../services/geminiService';
@@ -34,6 +35,16 @@ const Dashboard: React.FC<DashboardProps> = ({
   setError,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({
+    academicYear: '',
+    major: '',
+    skills: '',
+  });
+
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({ ...prev, [name]: value }));
+  };
 
   const handleFindMatches = async () => {
     setIsLoadingMatches(true);
@@ -51,16 +62,25 @@ const Dashboard: React.FC<DashboardProps> = ({
   };
   
   const filteredUsers = useMemo(() => {
-    if (!searchTerm) {
-      return availableUsers;
-    }
-    const lowercasedFilter = searchTerm.toLowerCase();
-    return availableUsers.filter(user =>
-      user.name.toLowerCase().includes(lowercasedFilter) ||
-      user.major.toLowerCase().includes(lowercasedFilter) ||
-      user.skills.some(skill => skill.toLowerCase().includes(lowercasedFilter))
-    );
-  }, [availableUsers, searchTerm]);
+    const lowercasedSearch = searchTerm.toLowerCase();
+    const lowercasedMajor = filters.major.toLowerCase();
+    const filterSkills = filters.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+
+    return availableUsers.filter(user => {
+      const matchesSearch = !lowercasedSearch ||
+        user.name.toLowerCase().includes(lowercasedSearch) ||
+        user.major.toLowerCase().includes(lowercasedSearch) ||
+        user.skills.some(skill => skill.toLowerCase().includes(lowercasedSearch));
+
+      const matchesYear = !filters.academicYear || user.academicYear === filters.academicYear;
+      const matchesMajor = !lowercasedMajor || user.major.toLowerCase().includes(lowercasedMajor);
+      const matchesSkills = filterSkills.length === 0 || filterSkills.every(filterSkill =>
+        user.skills.some(userSkill => userSkill.toLowerCase().includes(filterSkill))
+      );
+
+      return matchesSearch && matchesYear && matchesMajor && matchesSkills;
+    });
+  }, [availableUsers, searchTerm, filters]);
 
 
   const isTeamFull = myTeam.length >= TEAM_SIZE_LIMIT;
@@ -125,17 +145,63 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
           )}
 
-          <div>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold text-shell-text">{matches.length > 0 ? "Other Available Hackers" : "Available Hackers"}</h3>
-                <input
+          <div className="border-t border-fiu-blue/50 pt-6 mt-8">
+              <h3 className="text-xl font-semibold text-shell-text mb-4">
+                {matches.length > 0 ? "Other Available Hackers" : "Available Hackers"}
+              </h3>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 bg-shell-bg p-4 rounded-md border border-fiu-blue/30">
+                <div className="col-span-1 sm:col-span-2 lg:col-span-4">
+                  <label htmlFor="search" className="block text-sm font-medium text-shell-text-secondary mb-1">Search by Name...</label>
+                  <input
+                      id="search"
+                      type="text"
+                      placeholder="e.g., Elena Rodriguez..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full bg-shell-card border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="academicYear" className="block text-sm font-medium text-shell-text-secondary mb-1">Year</label>
+                  <select name="academicYear" id="academicYear" value={filters.academicYear} onChange={handleFilterChange} className="w-full bg-shell-card border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent">
+                    <option value="">All</option>
+                    <option>Freshman</option>
+                    <option>Sophomore</option>
+                    <option>Junior</option>
+                    <option>Senior</option>
+                    <option>Graduate</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="major" className="block text-sm font-medium text-shell-text-secondary mb-1">Major</label>
+                  <input
                     type="text"
-                    placeholder="Search by name, skill..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="bg-shell-bg border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent w-1/2"
-                />
+                    id="major"
+                    name="major"
+                    placeholder="e.g., CompSci"
+                    value={filters.major}
+                    onChange={handleFilterChange}
+                    className="w-full bg-shell-card border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent"
+                  />
+                </div>
+                
+                <div className="col-span-1 sm:col-span-2">
+                   <label htmlFor="skills" className="block text-sm font-medium text-shell-text-secondary mb-1">Required Skills (comma-sep.)</label>
+                   <input
+                    type="text"
+                    id="skills"
+                    name="skills"
+                    placeholder="e.g., Python, Figma"
+                    value={filters.skills}
+                    onChange={handleFilterChange}
+                    className="w-full bg-shell-card border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent"
+                  />
+                </div>
               </div>
+
               <div className="space-y-4">
                 {filteredUsers
                     .filter(user => !matches.some(match => match.id === user.id))
@@ -151,6 +217,12 @@ const Dashboard: React.FC<DashboardProps> = ({
                             />
                         );
                     })}
+                    {filteredUsers.length === 0 && (
+                        <div className="text-center py-8 text-shell-text-secondary">
+                            <p>No hackers match your criteria.</p>
+                            <p className="text-sm">Try adjusting your filters.</p>
+                        </div>
+                    )}
               </div>
           </div>
         </div>

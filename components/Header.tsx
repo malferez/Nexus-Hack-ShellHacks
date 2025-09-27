@@ -5,7 +5,7 @@ import { Avatar } from './Avatar';
 
 interface HeaderProps {
   currentUser: User | null;
-  setView: (view: 'dashboard' | 'profile' | 'teamChat') => void;
+  setView: (view: 'dashboard' | 'profile' | 'teamChat' | 'projectIdeaGenerator') => void;
 }
 
 
@@ -23,6 +23,7 @@ const Header: React.FC<HeaderProps> = ({ currentUser, setView }) => {
         {currentUser && (
           <nav className="flex items-center space-x-4">
             <button onClick={() => setView('dashboard')} className="text-shell-text-secondary hover:text-shell-accent transition-colors">Home</button>
+            <button onClick={() => setView('projectIdeaGenerator')} className="text-shell-text-secondary hover:text-shell-accent transition-colors">Idea Generator</button>
             <button onClick={() => setView('teamChat')} className="text-shell-text-secondary hover:text-shell-accent transition-colors">My Team</button>
             <button onClick={() => setView('profile')} className="flex items-center space-x-2 text-shell-text-secondary hover:text-shell-accent transition-colors">
               <Avatar src={currentUser.profilePictureUrl} name={currentUser.name} size="sm" />

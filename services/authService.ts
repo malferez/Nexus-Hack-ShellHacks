@@ -1,4 +1,3 @@
-
 import type { User } from '../types';
 import { MOCK_USERS } from '../constants';
 
@@ -51,6 +50,18 @@ export function login(email: string, password_DO_NOT_USE: string): User {
     }
     
     throw new Error('Invalid email or password.');
+}
+
+export async function requestPasswordReset(email: string): Promise<void> {
+    // In a real app, this would generate a token, save it, and send an email.
+    // Here, we just simulate the async action and don't reveal if the user exists.
+    console.log(`Password reset requested for ${email}. In a real app, an email would be sent.`);
+    
+    // We intentionally don't check if the user exists to prevent email enumeration.
+    // The delay simulates network latency.
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    return Promise.resolve();
 }
 
 export function logout(): void {

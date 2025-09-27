@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import type { User } from '../types';
 import * as authService from '../services/authService';
@@ -10,7 +9,7 @@ interface AuthProps {
 }
 
 const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
-  const [isLoginView, setIsLoginView] = useState(true);
+  const [authView, setAuthView] = useState<'login' | 'register' | 'forgot'>('login');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -25,6 +24,8 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -68,7 +69,7 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
     setError(null);
     try {
       let user;
-      if (isLoginView) {
+      if (authView === 'login') {
         user = authService.login(formData.email, formData.password);
       } else {
         const { email, password, ...profileData } = formData;
@@ -90,12 +91,64 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
       setIsLoading(false);
     }
   };
+  
+  const handleResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.email) {
+        setError("Please enter your email address.");
+        return;
+    }
+    setIsLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+        await authService.requestPasswordReset(formData.email);
+        setSuccessMessage('If an account with this email exists, a password reset link has been sent.');
+    } catch (err) {
+        // This is unlikely to be hit with the mock service, but good practice
+        setError('An error occurred. Please try again.');
+    } finally {
+        setIsLoading(false);
+    }
+  };
+  
+  const handleViewChange = (view: 'login' | 'register' | 'forgot') => {
+      setAuthView(view);
+      setError(null);
+      setSuccessMessage(null);
+      setFormData(prev => ({...prev, password: ''}));
+  }
+
+  if (authView === 'forgot') {
+      return (
+        <div className="max-w-md mx-auto bg-shell-card p-8 rounded-lg shadow-2xl">
+            <h2 className="text-3xl font-bold text-shell-text mb-2">Reset Password</h2>
+            <p className="text-shell-text-secondary mb-6">Enter your email to receive a (mock) reset link.</p>
+            <form onSubmit={handleResetSubmit} className="space-y-6">
+                 <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-shell-text-secondary mb-1">Email Address</label>
+                    <input type="email" name="email" id="email" required value={formData.email} onChange={handleInputChange} className="w-full bg-shell-bg border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent" />
+                </div>
+                 {error && <p className="text-red-400 text-sm mt-1 text-center">{error}</p>}
+                 {successMessage && <p className="text-green-400 text-sm mt-1 text-center">{successMessage}</p>}
+                 <button type="submit" disabled={isLoading} className="w-full bg-fiu-blue text-white font-bold py-3 px-4 rounded-md hover:bg-fiu-gold transition-colors duration-300 disabled:bg-gray-500 flex justify-center items-center">
+                    {isLoading ? <LoadingSpinner /> : 'Send Reset Link'}
+                </button>
+            </form>
+            <div className="mt-6 text-center">
+                <button onClick={() => handleViewChange('login')} className="text-sm text-shell-accent hover:underline">
+                    Back to Login
+                </button>
+            </div>
+        </div>
+      );
+  }
 
   return (
     <div className="max-w-3xl mx-auto bg-shell-card p-8 rounded-lg shadow-2xl">
-      <h2 className="text-3xl font-bold text-shell-text mb-2">{isLoginView ? 'Login' : 'Create Your Profile'}</h2>
+      <h2 className="text-3xl font-bold text-shell-text mb-2">{authView === 'login' ? 'Login' : 'Create Your Profile'}</h2>
       <p className="text-shell-text-secondary mb-6">
-        {isLoginView ? 'Welcome back, hacker!' : 'Join ShellHacks to find your dream team.'}
+        {authView === 'login' ? 'Welcome back, hacker!' : 'Join ShellHacks to find your dream team.'}
       </p>
       
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -107,8 +160,16 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
           <label htmlFor="password" className="block text-sm font-medium text-shell-text-secondary mb-1">Password</label>
           <input type="password" name="password" id="password" required value={formData.password} onChange={handleInputChange} className="w-full bg-shell-bg border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent" />
         </div>
+        
+        {authView === 'login' && (
+            <div className="text-right -mt-4">
+                <button type="button" onClick={() => handleViewChange('forgot')} className="text-sm text-shell-accent hover:underline focus:outline-none">
+                    Forgot Password?
+                </button>
+            </div>
+        )}
 
-        {!isLoginView && (
+        {authView === 'register' && (
             <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -157,12 +218,12 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
         {error && <p className="text-red-400 text-sm mt-1 text-center">{error}</p>}
         
         <button type="submit" disabled={isLoading} className="w-full bg-fiu-blue text-white font-bold py-3 px-4 rounded-md hover:bg-fiu-gold transition-colors duration-300 disabled:bg-gray-500 flex justify-center items-center">
-            {isLoading ? <LoadingSpinner /> : (isLoginView ? 'Login' : 'Create Profile & Find Team')}
+            {isLoading ? <LoadingSpinner /> : (authView === 'login' ? 'Login' : 'Create Profile & Find Team')}
         </button>
       </form>
       <div className="mt-6 text-center">
-        <button onClick={() => {setIsLoginView(!isLoginView); setError(null);}} className="text-sm text-shell-accent hover:underline">
-          {isLoginView ? "Don't have an account? Sign up" : "Already have an account? Login"}
+        <button onClick={() => handleViewChange(authView === 'login' ? 'register' : 'login')} className="text-sm text-shell-accent hover:underline">
+          {authView === 'login' ? "Don't have an account? Sign up" : "Already have an account? Login"}
         </button>
       </div>
     </div>

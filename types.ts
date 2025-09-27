@@ -20,3 +20,14 @@ export interface Match {
   skills: string[];
   justification: string;
 }
+
+export interface ChatMessage {
+  id: number;
+  sender: {
+    id: number;
+    name: string;
+    profilePictureUrl?: string;
+  };
+  text: string;
+  timestamp: string;
+}
