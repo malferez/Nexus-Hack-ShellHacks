@@ -1,3 +1,4 @@
+
 import type { User } from '../types';
 import { MOCK_USERS } from '../constants';
 
@@ -28,6 +29,7 @@ export function registerUser(userData: Omit<User, 'id'>): User {
   const newUser: User = {
     ...userData,
     id: Date.now(),
+    teamId: null,
   };
 
   const updatedUsers = [...users, newUser];
@@ -90,6 +92,17 @@ export function updateUser(updatedUser: User): User {
     const { password, ...rest } = updatedUser;
     users[userIndex] = { ...users[userIndex], ...rest };
 
+    saveUsers(users);
+    return users[userIndex];
+}
+
+export function updateUserTeam(userId: number, teamId: number | null): User {
+    const users = getUsers();
+    const userIndex = users.findIndex(u => u.id === userId);
+    if (userIndex === -1) {
+        throw new Error('User not found while updating team.');
+    }
+    users[userIndex].teamId = teamId;
     saveUsers(users);
     return users[userIndex];
 }

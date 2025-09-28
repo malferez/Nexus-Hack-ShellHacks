@@ -15,6 +15,7 @@ export const MOCK_USERS: User[] = [
     interests: 'AI for social good, hiking, indie music.',
     projectIdea: 'An app that uses ML to identify plant diseases from photos.',
     isOpenToTeams: true,
+    teamId: null,
   },
   {
     id: 2,
@@ -27,6 +28,7 @@ export const MOCK_USERS: User[] = [
     interests: 'Building custom hardware, robotics, playing guitar.',
     projectIdea: 'A smart home device that monitors energy consumption and suggests savings.',
     isOpenToTeams: true,
+    teamId: null,
   },
   {
     id: 3,
@@ -39,6 +41,7 @@ export const MOCK_USERS: User[] = [
     interests: 'Creating accessible designs, digital art, learning new languages.',
     projectIdea: 'Redesigning a local non-profit\'s website to improve user engagement.',
     isOpenToTeams: false,
+    teamId: null,
   },
   {
     id: 4,
@@ -51,6 +54,7 @@ export const MOCK_USERS: User[] = [
     interests: 'Web3, video games, watching soccer.',
     projectIdea: 'A decentralized application for tracking personal carbon footprint.',
     isOpenToTeams: true,
+    teamId: null,
   },
   {
     id: 5,
@@ -63,6 +67,7 @@ export const MOCK_USERS: User[] = [
     interests: 'Data visualization, cooking, running marathons.',
     projectIdea: 'An interactive dashboard visualizing city crime data to find patterns.',
     isOpenToTeams: true,
+    teamId: null,
   },
   {
     id: 6,
@@ -75,6 +80,7 @@ export const MOCK_USERS: User[] = [
     interests: 'Ethical hacking, CTF competitions, sci-fi movies.',
     projectIdea: 'A tool to scan smart contracts for common vulnerabilities.',
     isOpenToTeams: false,
+    teamId: null,
   },
   {
       id: 7,
@@ -87,6 +93,7 @@ export const MOCK_USERS: User[] = [
       interests: 'Backend systems, cloud architecture, salsa dancing.',
       projectIdea: 'A scalable microservice backend for a food delivery startup.',
       isOpenToTeams: true,
+      teamId: null,
   },
   {
       id: 8,
@@ -99,5 +106,6 @@ export const MOCK_USERS: User[] = [
       interests: 'Game development, 3D modeling, virtual reality.',
       projectIdea: 'An educational VR experience that takes users on a tour of ancient Rome.',
       isOpenToTeams: true,
+      teamId: null,
   }
 ];

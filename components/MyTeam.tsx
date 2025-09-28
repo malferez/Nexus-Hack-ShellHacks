@@ -1,38 +1,45 @@
 
 import React from 'react';
-import type { User } from '../types';
+import type { User, Team } from '../types';
 import { TEAM_SIZE_LIMIT } from '../constants';
 import { Avatar } from './Avatar';
 
 interface MyTeamProps {
-  myTeam: User[];
-  handleLeaveTeam: (userId: number) => void;
+  team: Team;
+  members: User[];
+  currentUser: User;
+  handleRemoveMember: (userId: number) => void;
+  handleLeaveTeam: () => void;
+  handleDeleteTeam: () => void;
 }
 
-const MyTeam: React.FC<MyTeamProps> = ({ myTeam, handleLeaveTeam }) => {
+const MyTeam: React.FC<MyTeamProps> = ({ team, members, currentUser, handleRemoveMember, handleLeaveTeam, handleDeleteTeam }) => {
   const teamSlots = Array.from({ length: TEAM_SIZE_LIMIT });
+  const isLeader = currentUser.id === team.leaderId;
+  const leaderName = members.find(m => m.id === team.leaderId)?.name || 'Unknown';
 
   return (
     <div className="bg-shell-card p-6 rounded-lg shadow-2xl sticky top-8">
-      <h2 className="text-2xl font-bold text-shell-text mb-1">Your Team</h2>
+      <h2 className="text-2xl font-bold text-shell-text mb-1">{team.name}</h2>
+      <p className="text-sm text-shell-text-secondary mb-2">Team Leader: {leaderName}</p>
       <p className="text-shell-text-secondary mb-4">
-        Team Size: <span className="font-bold text-shell-accent">{myTeam.length} / {TEAM_SIZE_LIMIT}</span>
+        Team Size: <span className="font-bold text-shell-accent">{members.length} / {TEAM_SIZE_LIMIT}</span>
       </p>
       <div className="space-y-3">
         {teamSlots.map((_, index) => {
-          const member = myTeam[index];
+          const member = members[index];
           if (member) {
             return (
               <div key={member.id} className="bg-shell-bg p-3 rounded-md flex items-center justify-between transition-all duration-300">
                 <div className="flex items-center space-x-3">
                     <Avatar src={member.profilePictureUrl} name={member.name} />
                     <div>
-                        <p className="font-bold text-shell-text">{member.name} {index === 0 ? '(You)' : ''}</p>
+                        <p className="font-bold text-shell-text">{member.name} {member.id === currentUser.id ? '(You)' : ''}</p>
                         <p className="text-sm text-shell-text-secondary">{member.major}</p>
                     </div>
                 </div>
-                {index !== 0 && (
-                  <button onClick={() => handleLeaveTeam(member.id)} className="text-red-400 hover:text-red-300 text-xs font-semibold uppercase tracking-wider">
+                {isLeader && member.id !== currentUser.id && (
+                  <button onClick={() => handleRemoveMember(member.id)} className="text-red-400 hover:text-red-300 text-xs font-semibold uppercase tracking-wider">
                     Remove
                   </button>
                 )}
@@ -46,7 +53,20 @@ const MyTeam: React.FC<MyTeamProps> = ({ myTeam, handleLeaveTeam }) => {
           );
         })}
       </div>
-      {myTeam.length === TEAM_SIZE_LIMIT && (
+      
+      <div className="mt-6 flex justify-between items-center">
+          {isLeader ? (
+               <button onClick={handleDeleteTeam} className="w-full bg-red-800/50 text-red-300 font-bold py-2 px-4 rounded-md hover:bg-red-800/80 transition-colors duration-300">
+                  Delete Team
+               </button>
+          ) : (
+               <button onClick={handleLeaveTeam} className="w-full bg-yellow-800/50 text-yellow-300 font-bold py-2 px-4 rounded-md hover:bg-yellow-800/80 transition-colors duration-300">
+                  Leave Team
+               </button>
+          )}
+      </div>
+
+      {members.length === TEAM_SIZE_LIMIT && (
         <div className="mt-4 text-center bg-green-900 border border-green-500 text-green-200 p-2 rounded-md">
             Your team is full! Let's get building!
         </div>

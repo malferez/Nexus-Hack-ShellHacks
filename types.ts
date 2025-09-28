@@ -11,6 +11,14 @@ export interface User {
   projectIdea: string;
   profilePictureUrl?: string; // base64 URL
   isOpenToTeams: boolean;
+  teamId?: number | null;
+}
+
+export interface Team {
+  id: number;
+  name: string;
+  leaderId: number;
+  memberIds: number[];
 }
 
 export interface Match {

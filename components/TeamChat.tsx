@@ -1,29 +1,28 @@
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import type { User, ChatMessage } from '../types';
+import React, { useState, useEffect, useRef } from 'react';
+import type { User, ChatMessage, Team } from '../types';
 import * as chatService from '../services/chatService';
 import { Avatar } from './Avatar';
 
 interface TeamChatProps {
-    myTeam: User[];
+    myTeamMembers: User[];
     currentUser: User;
+    currentUserTeam: Team | null;
 }
 
-const TeamChat: React.FC<TeamChatProps> = ({ myTeam, currentUser }) => {
+const TeamChat: React.FC<TeamChatProps> = ({ myTeamMembers, currentUser, currentUserTeam }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [newMessage, setNewMessage] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    const teamId = useMemo(() => {
-        if (!myTeam || myTeam.length === 0) return null;
-        // Create a stable, unique ID for the team chat room
-        return myTeam.map(u => u.id).sort().join('-');
-    }, [myTeam]);
+    const teamId = currentUserTeam?.id;
     
     useEffect(() => {
         if (teamId) {
-            const history = chatService.getMessages(teamId);
+            const history = chatService.getMessages(teamId.toString());
             setMessages(history);
+        } else {
+            setMessages([]);
         }
     }, [teamId]);
 
@@ -44,17 +43,26 @@ const TeamChat: React.FC<TeamChatProps> = ({ myTeam, currentUser }) => {
             text: newMessage,
         };
 
-        const savedMessage = chatService.sendMessage(teamId, messageData);
+        const savedMessage = chatService.sendMessage(teamId.toString(), messageData);
         setMessages(prevMessages => [...prevMessages, savedMessage]);
         setNewMessage('');
     };
+    
+    if (!currentUserTeam) {
+        return (
+            <div className="max-w-4xl mx-auto bg-shell-card shadow-2xl rounded-lg flex flex-col h-[75vh] items-center justify-center text-center p-4">
+                 <h2 className="text-2xl font-bold text-shell-text">No Team, No Chat</h2>
+                 <p className="text-shell-text-secondary mt-2">Create or join a team from the dashboard to start collaborating!</p>
+            </div>
+        )
+    }
 
     return (
         <div className="max-w-4xl mx-auto bg-shell-card shadow-2xl rounded-lg flex flex-col h-[75vh]">
             <div className="p-4 border-b border-fiu-blue">
-                <h2 className="text-2xl font-bold text-shell-text">Team Chat</h2>
+                <h2 className="text-2xl font-bold text-shell-text">Team Chat: {currentUserTeam.name}</h2>
                 <p className="text-shell-text-secondary">
-                    {myTeam.map(m => m.name).join(', ')}
+                    {myTeamMembers.map(m => m.name).join(', ')}
                 </p>
             </div>
             
