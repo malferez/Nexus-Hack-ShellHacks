@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import type { User, Match, Team } from '../types';
+import type { User, Match, Team, Request } from '../types';
 import { findTopMatches } from '../services/geminiService';
 import MyTeam from './MyTeam';
 import ParticipantCard from './ParticipantCard';
@@ -13,6 +13,7 @@ interface DashboardProps {
   myTeamMembers: User[];
   availableUsers: User[];
   teams: Team[];
+  requests: Request[];
   matches: Match[];
   setMatches: React.Dispatch<React.SetStateAction<Match[]>>;
   isLoadingMatches: boolean;
@@ -64,6 +65,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   myTeamMembers,
   availableUsers,
   teams,
+  requests,
   matches,
   setMatches,
   isLoadingMatches,
@@ -153,7 +155,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             <div className="lg:col-span-2">
                 <div className="bg-shell-card p-6 rounded-lg shadow-2xl">
                 <div className="border-b border-fiu-blue pb-4 mb-6">
-                    <h2 className="text-xl font-bold text-shell-text">Current Event: <span className="text-shell-accent">ShellHacks 2024</span></h2>
+                    <h2 className="text-xl font-bold text-shell-text">Current Event: <span className="text-shell-accent">ShellHacks 2025</span></h2>
                     <p className="text-shell-text-secondary">Welcome, {currentUser.name}. Let's find you a team!</p>
                 </div>
 
@@ -201,6 +203,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                     isMatch={true}
                                     matchJustification={match.justification}
                                     teams={teams}
+                                    requests={requests}
                                 />
                             );
                         })}
@@ -279,6 +282,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                         currentUserTeam={currentUserTeam}
                                         isTeamFull={isTeamFull} 
                                         teams={teams}
+                                        requests={requests}
                                     />
                                 );
                             })}

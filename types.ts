@@ -39,3 +39,24 @@ export interface ChatMessage {
   text: string;
   timestamp: string;
 }
+
+export interface Request {
+  id: number;
+  type: 'invite' | 'request';
+  // The user who initiated the request/invite
+  fromUser: {
+    id: number;
+    name: string;
+  };
+  // The user who receives the invite, or the leader of the team receiving the request
+  toUser: {
+    id: number;
+    name: string;
+  };
+  // The team involved in the transaction
+  team: {
+    id: number;
+    name: string;
+  };
+  status: 'pending';
+}
