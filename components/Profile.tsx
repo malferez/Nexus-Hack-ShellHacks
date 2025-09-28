@@ -36,17 +36,18 @@ const Profile: React.FC<ProfileProps> = ({ user, onUserUpdate, onLogout }) => {
         }
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
         setSuccessMessage(null);
         try {
-            const updatedUser = authService.updateUser({
+            const skillsAsArray = Array.isArray(formData.skills) 
+                ? formData.skills 
+                : String(formData.skills).split(',').map(s => s.trim()).filter(Boolean);
+
+            const updatedUser = await authService.updateUser({
                 ...formData,
-                // Fix: `formData.skills` can be a string at runtime after editing, but TypeScript
-                // infers it as `string[]` from the initial state, causing a `never` type in the else branch.
-                // `String(formData.skills)` handles both cases correctly.
-                skills: Array.isArray(formData.skills) ? formData.skills : String(formData.skills).split(',').map(s => s.trim()).filter(Boolean),
+                skills: skillsAsArray,
             });
             onUserUpdate(updatedUser);
             setSuccessMessage("Profile updated successfully!");
@@ -63,7 +64,7 @@ const Profile: React.FC<ProfileProps> = ({ user, onUserUpdate, onLogout }) => {
             <h2 className="text-3xl font-bold text-shell-text mb-6">My Profile</h2>
             <form onSubmit={handleSubmit} className="space-y-6">
                  <div className="flex items-center space-x-6">
-                    <Avatar src={formData.profilePictureUrl} name={formData.name} size="lg" />
+                    <Avatar src={formData.profilePictureUrl} fullName={formData.fullName} size="lg" />
                     <div>
                         <label htmlFor="profilePicture" className="block text-sm font-medium text-shell-text-secondary mb-1">Update Profile Picture</label>
                         <input type="file" name="profilePicture" id="profilePicture" onChange={handleFileChange} accept="image/*" className="w-full text-sm text-shell-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-shell-accent file:text-shell-bg hover:file:bg-opacity-80" />
@@ -72,8 +73,8 @@ const Profile: React.FC<ProfileProps> = ({ user, onUserUpdate, onLogout }) => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label htmlFor="name" className="block text-sm font-medium text-shell-text-secondary mb-1">Full Name</label>
-                        <input type="text" name="name" id="name" required value={formData.name} onChange={handleInputChange} className="w-full bg-shell-bg border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent" />
+                        <label htmlFor="fullName" className="block text-sm font-medium text-shell-text-secondary mb-1">Full Name</label>
+                        <input type="text" name="fullName" id="fullName" required value={formData.fullName} onChange={handleInputChange} className="w-full bg-shell-bg border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent" />
                     </div>
                     <div>
                         <label htmlFor="major" className="block text-sm font-medium text-shell-text-secondary mb-1">Major / Area of Study</label>

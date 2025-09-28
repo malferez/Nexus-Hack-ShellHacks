@@ -1,24 +1,13 @@
-
 import type { ChatMessage } from '../types';
+import api from './api';
 
-const CHAT_PREFIX = 'shellhacks_chat_';
-
-export function getMessages(teamId: string): ChatMessage[] {
-  const messagesJSON = localStorage.getItem(`${CHAT_PREFIX}${teamId}`);
-  return messagesJSON ? JSON.parse(messagesJSON) : [];
+export async function getMessages(teamId: number): Promise<ChatMessage[]> {
+  // The API supports cursor-based pagination, but we'll fetch the latest chunk for now.
+  const { messages } = await api<{ messages: ChatMessage[] }>('GET', `/teams/${teamId}/chat`);
+  return messages.reverse(); // API returns newest first, we want to display oldest first.
 }
 
-export function sendMessage(teamId: string, messageData: Omit<ChatMessage, 'id' | 'timestamp'>): ChatMessage {
-  const existingMessages = getMessages(teamId);
-  
-  const newMessage: ChatMessage = {
-    ...messageData,
-    id: Date.now(),
-    timestamp: new Date().toISOString(),
-  };
-
-  const updatedMessages = [...existingMessages, newMessage];
-  localStorage.setItem(`${CHAT_PREFIX}${teamId}`, JSON.stringify(updatedMessages));
-
-  return newMessage;
+export async function sendMessage(teamId: number, content: string): Promise<ChatMessage> {
+  const { message } = await api<{ message: ChatMessage }>('POST', `/teams/${teamId}/chat/messages`, { content });
+  return message;
 }

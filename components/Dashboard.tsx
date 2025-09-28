@@ -1,6 +1,5 @@
-
 import React, { useState, useMemo } from 'react';
-import type { User, Match, Team, Request } from '../types';
+import type { User, Match, AppNotification, MyTeamInfo } from '../types';
 import { findTopMatches } from '../services/geminiService';
 import MyTeam from './MyTeam';
 import ParticipantCard from './ParticipantCard';
@@ -9,32 +8,35 @@ import { TEAM_SIZE_LIMIT } from '../constants';
 
 interface DashboardProps {
   currentUser: User;
-  currentUserTeam: Team | null;
+  myTeamInfo: MyTeamInfo | null;
   myTeamMembers: User[];
   availableUsers: User[];
-  teams: Team[];
-  requests: Request[];
+  notifications: AppNotification[];
   matches: Match[];
   setMatches: React.Dispatch<React.SetStateAction<Match[]>>;
   isLoadingMatches: boolean;
   setIsLoadingMatches: React.Dispatch<React.SetStateAction<boolean>>;
-  handleInvite: (user: User) => void;
-  handleRequestToJoin: (user: User) => void;
-  handleRemoveMember: (userId: number) => void;
-  handleLeaveTeam: () => void;
-  handleDeleteTeam: () => void;
-  handleCreateTeam: (teamName: string) => void;
+  handleInvite: (user: User) => Promise<void>;
+  handleRequestToJoin: (user: User) => Promise<void>;
+  handleRemoveMember: (userId: number) => Promise<void>;
+  handleLeaveTeam: () => Promise<void>;
+  handleDeleteTeam: () => Promise<void>;
+  handleCreateTeam: (teamName: string) => Promise<void>;
   error: string | null;
   setError: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
-const CreateTeamForm: React.FC<{ handleCreateTeam: (name: string) => void }> = ({ handleCreateTeam }) => {
+const CreateTeamForm: React.FC<{ handleCreateTeam: (name: string) => Promise<void> }> = ({ handleCreateTeam }) => {
     const [teamName, setTeamName] = useState('');
+    const [isCreating, setIsCreating] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (teamName.trim()) {
-            handleCreateTeam(teamName.trim());
+        if (teamName.trim() && !isCreating) {
+            setIsCreating(true);
+            await handleCreateTeam(teamName.trim());
+            setIsCreating(false);
+            setTeamName('');
         }
     };
 
@@ -50,9 +52,10 @@ const CreateTeamForm: React.FC<{ handleCreateTeam: (name: string) => void }> = (
                     placeholder="Enter your team name..."
                     className="flex-grow bg-shell-bg border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent"
                     required
+                    disabled={isCreating}
                 />
-                <button type="submit" className="bg-fiu-blue text-white font-bold py-2 px-6 rounded-md hover:bg-fiu-gold transition-colors duration-300">
-                    Create Team
+                <button type="submit" className="bg-fiu-blue text-white font-bold py-2 px-6 rounded-md hover:bg-fiu-gold transition-colors duration-300 disabled:bg-gray-500" disabled={isCreating}>
+                    {isCreating ? <LoadingSpinner className="w-5 h-5" /> : 'Create Team'}
                 </button>
             </form>
         </div>
@@ -61,11 +64,10 @@ const CreateTeamForm: React.FC<{ handleCreateTeam: (name: string) => void }> = (
 
 const Dashboard: React.FC<DashboardProps> = ({
   currentUser,
-  currentUserTeam,
+  myTeamInfo,
   myTeamMembers,
   availableUsers,
-  teams,
-  requests,
+  notifications,
   matches,
   setMatches,
   isLoadingMatches,
@@ -85,6 +87,8 @@ const Dashboard: React.FC<DashboardProps> = ({
     major: '',
     skills: '',
   });
+  
+  const currentUserTeam = myTeamInfo?.team || null;
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -110,11 +114,10 @@ const Dashboard: React.FC<DashboardProps> = ({
     const lowercasedSearch = searchTerm.toLowerCase();
     const lowercasedMajor = filters.major.toLowerCase();
     const filterSkills = filters.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-    const usersToDisplay = availableUsers.filter(u => u.id !== currentUser.id);
 
-    return usersToDisplay.filter(user => {
+    return availableUsers.filter(user => {
       const matchesSearch = !lowercasedSearch ||
-        user.name.toLowerCase().includes(lowercasedSearch) ||
+        user.fullName.toLowerCase().includes(lowercasedSearch) ||
         user.major.toLowerCase().includes(lowercasedSearch) ||
         user.skills.some(skill => skill.toLowerCase().includes(lowercasedSearch));
 
@@ -126,7 +129,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       return matchesSearch && matchesYear && matchesMajor && matchesSkills;
     });
-  }, [availableUsers, searchTerm, filters, currentUser.id]);
+  }, [availableUsers, searchTerm, filters]);
 
 
   const isTeamFull = (currentUserTeam?.memberIds.length ?? 0) >= TEAM_SIZE_LIMIT;
@@ -136,9 +139,9 @@ const Dashboard: React.FC<DashboardProps> = ({
         {!currentUserTeam && <CreateTeamForm handleCreateTeam={handleCreateTeam} />}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1">
-                {currentUserTeam && myTeamMembers.length > 0 ? (
+                {currentUserTeam && myTeamInfo && myTeamMembers.length > 0 ? (
                     <MyTeam
-                        team={currentUserTeam}
+                        myTeamInfo={myTeamInfo}
                         members={myTeamMembers}
                         currentUser={currentUser}
                         handleRemoveMember={handleRemoveMember}
@@ -156,7 +159,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <div className="bg-shell-card p-6 rounded-lg shadow-2xl">
                 <div className="border-b border-fiu-blue pb-4 mb-6">
                     <h2 className="text-xl font-bold text-shell-text">Current Event: <span className="text-shell-accent">ShellHacks 2025</span></h2>
-                    <p className="text-shell-text-secondary">Welcome, {currentUser.name}. Let's find you a team!</p>
+                    <p className="text-shell-text-secondary">Welcome, {currentUser.fullName}. Let's find you a team!</p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center border-b border-fiu-blue/50 pb-4 mb-4">
@@ -202,8 +205,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                     isTeamFull={isTeamFull}
                                     isMatch={true}
                                     matchJustification={match.justification}
-                                    teams={teams}
-                                    requests={requests}
+                                    notifications={notifications}
                                 />
                             );
                         })}
@@ -281,8 +283,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                         currentUser={currentUser}
                                         currentUserTeam={currentUserTeam}
                                         isTeamFull={isTeamFull} 
-                                        teams={teams}
-                                        requests={requests}
+                                        notifications={notifications}
                                     />
                                 );
                             })}

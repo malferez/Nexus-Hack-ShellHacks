@@ -1,9 +1,8 @@
-
 import React from 'react';
 
 interface AvatarProps {
   src?: string;
-  name: string;
+  fullName: string;
   size?: 'sm' | 'md' | 'lg';
 }
 
@@ -30,14 +29,14 @@ const hashNameToColor = (name: string) => {
     return color;
 }
 
-export const Avatar: React.FC<AvatarProps> = ({ src, name, size = 'md' }) => {
+export const Avatar: React.FC<AvatarProps> = ({ src, fullName, size = 'md' }) => {
   const sizeClass = sizeClasses[size] || sizeClasses['md'];
 
   if (src) {
     return (
       <img
         src={src}
-        alt={name}
+        alt={fullName}
         className={`${sizeClass} rounded-full object-cover bg-shell-bg`}
       />
     );
@@ -46,10 +45,10 @@ export const Avatar: React.FC<AvatarProps> = ({ src, name, size = 'md' }) => {
   return (
     <div
       className={`${sizeClass} rounded-full flex items-center justify-center font-bold text-white`}
-      style={{ backgroundColor: hashNameToColor(name) }}
-      aria-label={name}
+      style={{ backgroundColor: hashNameToColor(fullName) }}
+      aria-label={fullName}
     >
-      {getInitials(name)}
+      {getInitials(fullName)}
     </div>
   );
 };

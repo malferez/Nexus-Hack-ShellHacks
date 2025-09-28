@@ -1,30 +1,39 @@
+import type { Invite, JoinRequest, AppNotification } from '../types';
+import api from './api';
 
-import type { Request } from '../types';
-
-const REQUESTS_KEY = 'shellhacks_requests';
-
-export function getRequests(): Request[] {
-  const requestsJSON = localStorage.getItem(REQUESTS_KEY);
-  return requestsJSON ? JSON.parse(requestsJSON) : [];
+interface NotificationsResponse {
+    invites: Invite[];
+    requests: JoinRequest[];
 }
 
-function saveRequests(requests: Request[]): void {
-  localStorage.setItem(REQUESTS_KEY, JSON.stringify(requests));
+export async function getPendingNotifications(): Promise<AppNotification[]> {
+  const response = await api<NotificationsResponse>('GET', '/teams/invites');
+  
+  const formattedInvites: AppNotification[] = response.invites.map(invite => ({
+      ...invite,
+      type: 'invite',
+  }));
+
+  const formattedRequests: AppNotification[] = response.requests.map(req => ({
+      ...req,
+      type: 'request',
+  }));
+
+  return [...formattedInvites, ...formattedRequests];
 }
 
-export function createRequest(data: Omit<Request, 'id' | 'status'>): Request {
-  const requests = getRequests();
-  const newRequest: Request = {
-    ...data,
-    id: Date.now(),
-    status: 'pending',
-  };
-  saveRequests([...requests, newRequest]);
-  return newRequest;
+export async function inviteUser(teamId: number, inviteeId: number): Promise<void> {
+    await api('POST', `/teams/${teamId}/invite`, { inviteeId });
 }
 
-export function deleteRequest(requestId: number): void {
-  let requests = getRequests();
-  requests = requests.filter(req => req.id !== requestId);
-  saveRequests(requests);
+export async function requestToJoinTeam(teamId: number): Promise<void> {
+    await api('POST', `/teams/${teamId}/request`);
+}
+
+export async function acceptNotification(inviteId: string, force: boolean): Promise<void> {
+    await api('POST', `/teams/invites/${inviteId}/accept?force=${force}`);
+}
+
+export async function declineNotification(inviteId: string): Promise<void> {
+    await api('POST', `/teams/invites/${inviteId}/decline`);
 }

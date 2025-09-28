@@ -1,49 +1,23 @@
+import type { Team, MyTeamInfo } from '../types';
+import api from './api';
 
-import type { Team, User } from '../types';
-
-const TEAMS_KEY = 'shellhacks_teams';
-
-export function getTeams(): Team[] {
-  const teams = localStorage.getItem(TEAMS_KEY);
-  return teams ? JSON.parse(teams) : [];
+export async function getMyTeam(): Promise<MyTeamInfo> {
+    return api<MyTeamInfo>('GET', '/teams/me');
 }
 
-function saveTeams(teams: Team[]): void {
-  localStorage.setItem(TEAMS_KEY, JSON.stringify(teams));
+export async function createTeam(name: string): Promise<Team> {
+  const { team } = await api<{ team: Team }>('POST', '/teams', { name });
+  return team;
 }
 
-export function createTeam(teamName: string, leader: User): Team {
-  const teams = getTeams();
-  const newTeam: Team = {
-    id: Date.now(),
-    name: teamName,
-    leaderId: leader.id,
-    memberIds: [leader.id],
-  };
-  saveTeams([...teams, newTeam]);
-  return newTeam;
+export async function deleteTeam(teamId: number): Promise<void> {
+  await api('DELETE', `/teams/${teamId}`);
 }
 
-export function getTeamById(teamId: number): Team | undefined {
-    return getTeams().find(team => team.id === teamId);
+export async function leaveTeam(teamId: number): Promise<void> {
+  await api('POST', `/teams/${teamId}/leave`);
 }
 
-export function deleteTeam(teamId: number): void {
-  let teams = getTeams();
-  teams = teams.filter(team => team.id !== teamId);
-  saveTeams(teams);
-}
-
-export function updateTeam(updatedTeam: Team): Team {
-    const teams = getTeams();
-    const teamIndex = teams.findIndex(t => t.id === updatedTeam.id);
-    if (teamIndex === -1) {
-        // If team not found, it might be a new one, but this function is for updates.
-        // Let's add it if it doesn't exist to prevent errors, though ideally it should.
-        teams.push(updatedTeam);
-    } else {
-        teams[teamIndex] = updatedTeam;
-    }
-    saveTeams(teams);
-    return updatedTeam;
+export async function removeMember(teamId: number, memberUserId: number): Promise<void> {
+  await api('DELETE', `/teams/${teamId}/members/${memberUserId}`);
 }

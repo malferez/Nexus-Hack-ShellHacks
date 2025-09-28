@@ -1,8 +1,6 @@
-
 import React from 'react';
-import type { User, Team, Request } from '../types';
+import type { User, Team, AppNotification } from '../types';
 import { Avatar } from './Avatar';
-import { TEAM_SIZE_LIMIT } from '../constants';
 
 interface ParticipantCardProps {
   user: User;
@@ -11,8 +9,7 @@ interface ParticipantCardProps {
   currentUser: User;
   currentUserTeam: Team | null;
   isTeamFull: boolean;
-  teams: Team[];
-  requests: Request[];
+  notifications: AppNotification[];
   isMatch?: boolean;
   matchJustification?: string;
 }
@@ -21,8 +18,8 @@ const Tag: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <span className="bg-fiu-blue/50 text-shell-accent text-xs font-medium mr-2 mb-2 px-2.5 py-0.5 rounded-full">{children}</span>
 );
 
-const ParticipantCard: React.FC<ParticipantCardProps> = ({ user, onInvite, onRequestToJoin, currentUser, currentUserTeam, isTeamFull, teams, requests, isMatch = false, matchJustification }) => {
-  const participantTeam = teams.find(t => t.id === user.teamId);
+const ParticipantCard: React.FC<ParticipantCardProps> = ({ user, onInvite, onRequestToJoin, currentUser, currentUserTeam, isTeamFull, notifications, isMatch = false, matchJustification }) => {
+  const participantTeam = user.team;
   
   const renderActionButton = () => {
     const isCurrentUserLeader = currentUserTeam?.leaderId === currentUser.id;
@@ -32,14 +29,14 @@ const ParticipantCard: React.FC<ParticipantCardProps> = ({ user, onInvite, onReq
     const enabledClasses = "bg-shell-accent hover:bg-opacity-80";
     const disabledClasses = "bg-gray-600 text-gray-400 cursor-not-allowed";
     
-    // Check for pending requests
-    const pendingRequest = requests.find(r =>
-        (r.type === 'invite' && r.team.id === currentUserTeam?.id && r.toUser.id === user.id) ||
-        (r.type === 'request' && r.fromUser.id === currentUser.id && r.team.id === user.teamId)
+    // Check for pending notifications involving this user
+    const pendingNotification = notifications.find(n =>
+        (n.type === 'invite' && n.team.id === currentUserTeam?.id && (n as any).toUser?.id === user.id) || // API doesn't specify toUser on invite response
+        (n.type === 'request' && n.inviter.id === currentUser.id && n.team.id === user.team?.id)
     );
 
-    if (pendingRequest) {
-        return <button disabled className={`${baseButtonClasses} ${disabledClasses}`}>{pendingRequest.type === 'invite' ? 'Invited' : 'Request Sent'}</button>
+    if (pendingNotification) {
+        return <button disabled className={`${baseButtonClasses} ${disabledClasses}`}>{pendingNotification.type === 'invite' ? 'Invited' : 'Request Sent'}</button>
     }
 
     if (isUserInMyTeam) {
@@ -53,6 +50,9 @@ const ParticipantCard: React.FC<ParticipantCardProps> = ({ user, onInvite, onReq
             }
             if (!user.isOpenToTeams) {
                 return <button disabled className={`${baseButtonClasses} ${disabledClasses}`}>Not Looking</button>;
+            }
+            if (user.team) {
+                return <button disabled className={`${baseButtonClasses} ${disabledClasses}`}>Already in a team</button>;
             }
             return <button onClick={() => onInvite(user)} className={`${baseButtonClasses} ${enabledClasses}`}>Invite to Team</button>;
         } else {
@@ -75,10 +75,10 @@ const ParticipantCard: React.FC<ParticipantCardProps> = ({ user, onInvite, onReq
     <div className={`bg-shell-bg p-4 rounded-lg border transition-all duration-300 ${isMatch ? 'border-shell-accent shadow-lg' : 'border-fiu-blue/50'}`}>
         <div className="flex flex-col sm:flex-row justify-between sm:items-start">
             <div className="flex items-center space-x-4">
-                <Avatar src={user.profilePictureUrl} name={user.name} />
+                <Avatar src={user.profilePictureUrl} fullName={user.fullName} />
                 <div>
                     <div className="flex items-center flex-wrap gap-x-2">
-                        <h4 className="text-lg font-bold text-shell-text">{user.name}</h4>
+                        <h4 className="text-lg font-bold text-shell-text">{user.fullName}</h4>
                         {user.isOpenToTeams ? (
                             <span className="text-xs bg-green-500/30 text-green-300 font-bold py-0.5 px-2 rounded-full">Open to Teams</span>
                         ) : (

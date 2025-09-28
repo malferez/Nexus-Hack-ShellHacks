@@ -1,12 +1,13 @@
-
 import type { User } from './types';
 
 export const TEAM_SIZE_LIMIT = 4;
 
+// This mock data is now only used for initial database seeding if the backend is empty.
+// The frontend will fetch real user data from the API.
 export const MOCK_USERS: User[] = [
   {
     id: 1,
-    name: 'Elena Rodriguez',
+    fullName: 'Elena Rodriguez',
     email: 'elena@fiu.edu',
     password: 'password123',
     major: 'Computer Science',
@@ -15,11 +16,11 @@ export const MOCK_USERS: User[] = [
     interests: 'AI for social good, hiking, indie music.',
     projectIdea: 'An app that uses ML to identify plant diseases from photos.',
     isOpenToTeams: true,
-    teamId: null,
+    team: null,
   },
   {
     id: 2,
-    name: 'Ben Carter',
+    fullName: 'Ben Carter',
     email: 'ben@fiu.edu',
     password: 'password123',
     major: 'Electrical Engineering',
@@ -28,11 +29,11 @@ export const MOCK_USERS: User[] = [
     interests: 'Building custom hardware, robotics, playing guitar.',
     projectIdea: 'A smart home device that monitors energy consumption and suggests savings.',
     isOpenToTeams: true,
-    teamId: null,
+    team: null,
   },
   {
     id: 3,
-    name: 'Aisha Khan',
+    fullName: 'Aisha Khan',
     email: 'aisha@fiu.edu',
     password: 'password123',
     major: 'UX/UI Design',
@@ -41,11 +42,11 @@ export const MOCK_USERS: User[] = [
     interests: 'Creating accessible designs, digital art, learning new languages.',
     projectIdea: 'Redesigning a local non-profit\'s website to improve user engagement.',
     isOpenToTeams: false,
-    teamId: null,
+    team: null,
   },
   {
     id: 4,
-    name: 'Carlos Gomez',
+    fullName: 'Carlos Gomez',
     email: 'carlos@fiu.edu',
     password: 'password123',
     major: 'Computer Science',
@@ -54,11 +55,11 @@ export const MOCK_USERS: User[] = [
     interests: 'Web3, video games, watching soccer.',
     projectIdea: 'A decentralized application for tracking personal carbon footprint.',
     isOpenToTeams: true,
-    teamId: null,
+    team: null,
   },
   {
     id: 5,
-    name: 'Samantha Lee',
+    fullName: 'Samantha Lee',
     email: 'samantha@fiu.edu',
     password: 'password123',
     major: 'Data Science',
@@ -67,11 +68,11 @@ export const MOCK_USERS: User[] = [
     interests: 'Data visualization, cooking, running marathons.',
     projectIdea: 'An interactive dashboard visualizing city crime data to find patterns.',
     isOpenToTeams: true,
-    teamId: null,
+    team: null,
   },
   {
     id: 6,
-    name: 'David Chen',
+    fullName: 'David Chen',
     email: 'david@fiu.edu',
     password: 'password123',
     major: 'Cybersecurity',
@@ -80,11 +81,11 @@ export const MOCK_USERS: User[] = [
     interests: 'Ethical hacking, CTF competitions, sci-fi movies.',
     projectIdea: 'A tool to scan smart contracts for common vulnerabilities.',
     isOpenToTeams: false,
-    teamId: null,
+    team: null,
   },
   {
       id: 7,
-      name: 'Maria Garcia',
+      fullName: 'Maria Garcia',
       email: 'maria@fiu.edu',
       password: 'password123',
       major: 'Software Engineering',
@@ -93,11 +94,11 @@ export const MOCK_USERS: User[] = [
       interests: 'Backend systems, cloud architecture, salsa dancing.',
       projectIdea: 'A scalable microservice backend for a food delivery startup.',
       isOpenToTeams: true,
-      teamId: null,
+      team: null,
   },
   {
       id: 8,
-      name: 'Leo Petrov',
+      fullName: 'Leo Petrov',
       email: 'leo@fiu.edu',
       password: 'password123',
       major: 'Computer Graphics',
@@ -106,6 +107,6 @@ export const MOCK_USERS: User[] = [
       interests: 'Game development, 3D modeling, virtual reality.',
       projectIdea: 'An educational VR experience that takes users on a tour of ancient Rome.',
       isOpenToTeams: true,
-      teamId: null,
+      team: null,
   }
 ];

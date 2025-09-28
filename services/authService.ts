@@ -1,108 +1,103 @@
-
 import type { User } from '../types';
-import { MOCK_USERS } from '../constants';
+import api from './api';
 
-const USERS_KEY = 'shellhacks_users';
-const SESSION_KEY = 'shellhacks_session';
+// --- Start of new file services/api.ts ---
+// Note: In a real multi-file setup, this would be in its own file.
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
-// Initialize with mock users if the DB is empty
-export function getUsers(): User[] {
-  const users = localStorage.getItem(USERS_KEY);
-  if (!users) {
-    localStorage.setItem(USERS_KEY, JSON.stringify(MOCK_USERS));
-    return MOCK_USERS;
-  }
-  return JSON.parse(users);
-}
-
-function saveUsers(users: User[]): void {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
-
-export function registerUser(userData: Omit<User, 'id'>): User {
-  const users = getUsers();
-  const existingUser = users.find(u => u.email === userData.email);
-  if (existingUser) {
-    throw new Error('An account with this email already exists.');
-  }
-
-  const newUser: User = {
-    ...userData,
-    id: Date.now(),
-    teamId: null,
+async function _api<T>(method: HttpMethod, path: string, body?: unknown): Promise<T> {
+  const options: RequestInit = {
+    method,
+    credentials: 'include', // Send cookies
+    headers: {},
   };
 
-  const updatedUsers = [...users, newUser];
-  saveUsers(updatedUsers);
-  
-  // Log the user in after registration
-  localStorage.setItem(SESSION_KEY, JSON.stringify({ userId: newUser.id }));
+  if (body) {
+    options.headers['Content-Type'] = 'application/json';
+    options.body = JSON.stringify(body);
+  }
 
-  return newUser;
+  // Use a placeholder base URL as it's not provided.
+  // In a real app this would be in an environment variable.
+  const API_BASE_URL = '/api'; 
+
+  const response = await fetch(`${API_BASE_URL}${path}`, options);
+
+  if (!response.ok) {
+    let errorData;
+    try {
+      errorData = await response.json();
+    } catch (e) {
+      const error = new Error(`HTTP error! status: ${response.status}`);
+      (error as any).status = response.status;
+      throw error;
+    }
+    const error = new Error(errorData.message || 'An unknown API error occurred');
+    (error as any).code = errorData.code;
+    (error as any).status = response.status;
+    throw error;
+  }
+
+  if (response.status === 204) {
+    return null as T;
+  }
+
+  return response.json();
+}
+// --- End of new file services/api.ts ---
+
+
+// Using a simple flag to track login state client-side
+let loggedIn = false;
+
+// We assume these endpoints based on standard REST practices, as they were not in the docs.
+export async function registerUser(userData: Omit<User, 'id'>): Promise<User> {
+  const { user } = await _api<{ user: User }>('POST', '/auth/register', userData);
+  loggedIn = true;
+  return user;
 }
 
-export function login(email: string, password_DO_NOT_USE: string): User {
-    const users = getUsers();
-    const user = users.find(u => u.email === email);
-    
-    // In a real app, you would compare hashed passwords. Here we simulate success if user exists.
-    if (user) {
-        localStorage.setItem(SESSION_KEY, JSON.stringify({ userId: user.id }));
-        return user;
-    }
-    
-    throw new Error('Invalid email or password.');
+export async function login(email: string, password_DO_NOT_USE: string): Promise<User> {
+    const { user } = await _api<{ user: User }>('POST', '/auth/login', { email, password: password_DO_NOT_USE });
+    loggedIn = true;
+    return user;
+}
+
+export async function logout(): Promise<void> {
+    await _api('POST', '/auth/logout');
+    loggedIn = false;
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {
-    // In a real app, this would generate a token, save it, and send an email.
-    // Here, we just simulate the async action and don't reveal if the user exists.
-    console.log(`Password reset requested for ${email}. In a real app, an email would be sent.`);
-    
-    // We intentionally don't check if the user exists to prevent email enumeration.
-    // The delay simulates network latency.
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    return Promise.resolve();
+    await _api('POST', '/auth/request-reset', { email });
 }
 
-export function logout(): void {
-  localStorage.removeItem(SESSION_KEY);
+export async function getCurrentUserSession(): Promise<User> {
+    const { user } = await _api<{ user: User }>('GET', '/auth/session');
+    loggedIn = true;
+    return user;
 }
 
-export function getCurrentUser(): User | null {
-  const session = localStorage.getItem(SESSION_KEY);
-  if (!session) {
-    return null;
-  }
-
-  const { userId } = JSON.parse(session);
-  const users = getUsers();
-  return users.find(u => u.id === userId) || null;
+export async function updateUser(updatedUser: Partial<User>): Promise<User> {
+    const { user } = await _api<{ user: User }>('PATCH', '/users/me', updatedUser);
+    return user;
 }
 
-export function updateUser(updatedUser: User): User {
-    const users = getUsers();
-    const userIndex = users.findIndex(u => u.id === updatedUser.id);
-    if (userIndex === -1) {
-        throw new Error('User not found.');
-    }
-    
-    // Exclude password from being updated this way
-    const { password, ...rest } = updatedUser;
-    users[userIndex] = { ...users[userIndex], ...rest };
-
-    saveUsers(users);
-    return users[userIndex];
+export async function getAllUsers(): Promise<User[]> {
+    const { users } = await _api<{ users: User[] }>('GET', '/users');
+    return users;
 }
 
-export function updateUserTeam(userId: number, teamId: number | null): User {
-    const users = getUsers();
-    const userIndex = users.findIndex(u => u.id === userId);
-    if (userIndex === -1) {
-        throw new Error('User not found while updating team.');
-    }
-    users[userIndex].teamId = teamId;
-    saveUsers(users);
-    return users[userIndex];
+export function isLoggedIn(): boolean {
+    // This is a simple check. In a real app, you might check for a cookie
+    // or use the result of the initial session check.
+    return loggedIn;
 }
+
+// The following functions are no longer needed as they interact with localStorage
+// and are replaced by API calls.
+/*
+export function getUsers(): User[] { ... }
+export function getCurrentUser(): User | null { ... }
+export function updateUserTeam(userId: number, teamId: number | null): User { ... }
+*/

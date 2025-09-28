@@ -1,11 +1,10 @@
-
 import React from 'react';
-import type { User, Team } from '../types';
+import type { User, MyTeamInfo } from '../types';
 import { TEAM_SIZE_LIMIT } from '../constants';
 import { Avatar } from './Avatar';
 
 interface MyTeamProps {
-  team: Team;
+  myTeamInfo: MyTeamInfo;
   members: User[];
   currentUser: User;
   handleRemoveMember: (userId: number) => void;
@@ -13,10 +12,11 @@ interface MyTeamProps {
   handleDeleteTeam: () => void;
 }
 
-const MyTeam: React.FC<MyTeamProps> = ({ team, members, currentUser, handleRemoveMember, handleLeaveTeam, handleDeleteTeam }) => {
+const MyTeam: React.FC<MyTeamProps> = ({ myTeamInfo, members, currentUser, handleRemoveMember, handleLeaveTeam, handleDeleteTeam }) => {
+  const { team, role } = myTeamInfo;
   const teamSlots = Array.from({ length: TEAM_SIZE_LIMIT });
-  const isLeader = currentUser.id === team.leaderId;
-  const leaderName = members.find(m => m.id === team.leaderId)?.name || 'Unknown';
+  const isLeader = role === 'LEADER';
+  const leaderName = members.find(m => m.id === team.leaderId)?.fullName || 'Unknown';
 
   return (
     <div className="bg-shell-card p-6 rounded-lg shadow-2xl sticky top-8">
@@ -32,9 +32,9 @@ const MyTeam: React.FC<MyTeamProps> = ({ team, members, currentUser, handleRemov
             return (
               <div key={member.id} className="bg-shell-bg p-3 rounded-md flex items-center justify-between transition-all duration-300">
                 <div className="flex items-center space-x-3">
-                    <Avatar src={member.profilePictureUrl} name={member.name} />
+                    <Avatar src={member.profilePictureUrl} fullName={member.fullName} />
                     <div>
-                        <p className="font-bold text-shell-text">{member.name} {member.id === currentUser.id ? '(You)' : ''}</p>
+                        <p className="font-bold text-shell-text">{member.fullName} {member.id === currentUser.id ? '(You)' : ''}</p>
                         <p className="text-sm text-shell-text-secondary">{member.major}</p>
                     </div>
                 </div>

@@ -1,6 +1,5 @@
-
-import React, { useState, useEffect, useMemo } from 'react';
-import type { User, Match, Team, Request } from './types';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import type { User, Match, Team, AppNotification, MyTeamInfo } from './types';
 import * as authService from './services/authService';
 import * as teamService from './services/teamService';
 import * as requestService from './services/requestService';
@@ -11,6 +10,7 @@ import Profile from './components/Profile';
 import TeamChat from './components/TeamChat';
 import ProjectIdeaGenerator from './components/ProjectIdeaGenerator';
 import { TEAM_SIZE_LIMIT } from './constants';
+import { LoadingSpinner } from './components/LoadingSpinner';
 
 type View = 'auth' | 'dashboard' | 'profile' | 'teamChat' | 'projectIdeaGenerator';
 
@@ -28,63 +28,61 @@ type ConfirmationModalState = {
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [requests, setRequests] = useState<Request[]>([]);
+  const [myTeamInfo, setMyTeamInfo] = useState<MyTeamInfo | null>(null);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [view, setView] = useState<View>('dashboard');
   
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoadingMatches, setIsLoadingMatches] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+  const [appIsLoading, setAppIsLoading] = useState(true);
+
   const [confirmationModal, setConfirmationModal] = useState<ConfirmationModalState>({
       isOpen: false,
       title: '',
       message: '',
       onConfirm: () => {},
       isAlert: false,
-      confirmButtonClass: '',
-      confirmButtonText: '',
-      cancelButtonText: '',
   });
 
-
-  const reloadAllData = () => {
-      const users = authService.getUsers();
-      const allTeams = teamService.getTeams();
-      const allRequests = requestService.getRequests();
-      setAllUsers(users);
-      setTeams(allTeams);
-      setRequests(allRequests);
-
-      if (currentUser) {
-        setCurrentUser(users.find(u => u.id === currentUser.id) || null);
-      }
-  }
-
-  useEffect(() => {
-    const user = authService.getCurrentUser();
-    if (user) {
-        setCurrentUser(user);
-        setView('dashboard');
-    } else {
+  const reloadAllData = useCallback(async () => {
+    if (!authService.isLoggedIn()) {
+        setCurrentUser(null);
+        setMyTeamInfo(null);
+        setAppIsLoading(false);
         setView('auth');
+        return;
     }
-    reloadAllData();
+    try {
+        const [sessionUser, users, teamInfo, pendingNotifications] = await Promise.all([
+            authService.getCurrentUserSession(),
+            authService.getAllUsers(),
+            teamService.getMyTeam().catch(() => null),
+            requestService.getPendingNotifications(),
+        ]);
+        
+        setCurrentUser(sessionUser);
+        setAllUsers(users);
+        setMyTeamInfo(teamInfo);
+        setNotifications(pendingNotifications);
+
+    } catch (err) {
+        console.error("Failed to load app data:", err);
+        setError("Could not load data. Please try refreshing the page.");
+        // If session is invalid, log out
+        if (err instanceof Error && (err as any).status === 401) {
+            handleLogout();
+        }
+    } finally {
+        setAppIsLoading(false);
+    }
   }, []);
 
-  const currentUserTeam = useMemo(() => {
-    if (!currentUser?.teamId) return null;
-    return teams.find(team => team.id === currentUser.teamId) || null;
-  }, [currentUser, teams]);
-  
-  const pendingRequestsForUser = useMemo(() => {
-      if (!currentUser) return [];
-      // Invites sent to me OR requests sent to my team (if I'm the leader)
-      return requests.filter(req => 
-          (req.type === 'invite' && req.toUser.id === currentUser.id) ||
-          (req.type === 'request' && currentUserTeam && req.team.id === currentUserTeam.id && currentUser.id === currentUserTeam.leaderId)
-      );
-  }, [currentUser, currentUserTeam, requests]);
+  useEffect(() => {
+    reloadAllData();
+  }, [reloadAllData]);
+
+  const currentUserTeam = useMemo(() => myTeamInfo?.team || null, [myTeamInfo]);
 
   const myTeamMembers = useMemo(() => {
       if (!currentUserTeam) return [];
@@ -92,16 +90,19 @@ const App: React.FC = () => {
       return allUsers.filter(user => memberIds.has(user.id));
   }, [currentUserTeam, allUsers]);
 
-
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
     setView('dashboard');
+    setAppIsLoading(true);
     reloadAllData();
   };
 
-  const handleLogout = () => {
-    authService.logout();
+  const handleLogout = async () => {
+    await authService.logout();
     setCurrentUser(null);
+    setMyTeamInfo(null);
+    setNotifications([]);
+    setAllUsers([]);
     setView('auth');
   };
   
@@ -115,179 +116,119 @@ const App: React.FC = () => {
     return allUsers.filter(user => user.id !== currentUser.id);
   }, [currentUser, allUsers]);
 
-  const handleCreateTeam = (teamName: string) => {
+  const handleCreateTeam = async (teamName: string) => {
       if (!currentUser) return;
-      const newTeam = teamService.createTeam(teamName, currentUser);
-      authService.updateUserTeam(currentUser.id, newTeam.id);
-      reloadAllData();
+      try {
+        await teamService.createTeam(teamName);
+        await reloadAllData();
+      } catch (err) {
+          setError((err as Error).message);
+      }
   }
 
-  const handleDeleteTeam = () => {
-      if (!currentUserTeam || currentUser?.id !== currentUserTeam.leaderId) return;
-
+  const handleDeleteTeam = async () => {
+      if (!currentUserTeam || myTeamInfo?.role !== 'LEADER') return;
       setConfirmationModal({
           isOpen: true,
           title: 'Delete Team?',
           message: 'Are you sure you want to delete your team? This action is permanent and cannot be undone.',
-          onConfirm: () => {
-              teamService.deleteTeam(currentUserTeam.id);
-              currentUserTeam.memberIds.forEach(memberId => {
-                  authService.updateUserTeam(memberId, null);
-              });
-              reloadAllData();
+          onConfirm: async () => {
+              try {
+                await teamService.deleteTeam(currentUserTeam.id);
+                await reloadAllData();
+              } catch (err) {
+                  setError((err as Error).message);
+              }
               setConfirmationModal(prevState => ({ ...prevState, isOpen: false }));
           }
       });
   }
   
-  const handleRemoveMember = (userId: number) => {
-      if (!currentUserTeam || currentUser?.id !== currentUserTeam.leaderId || userId === currentUser.id) return;
-      const updatedTeam = { ...currentUserTeam, memberIds: currentUserTeam.memberIds.filter(id => id !== userId) };
-      teamService.updateTeam(updatedTeam);
-      authService.updateUserTeam(userId, null);
-      reloadAllData();
+  const handleRemoveMember = async (userId: number) => {
+      if (!currentUserTeam || myTeamInfo?.role !== 'LEADER' || userId === currentUser?.id) return;
+      try {
+        await teamService.removeMember(currentUserTeam.id, userId);
+        await reloadAllData();
+      } catch (err) {
+          setError((err as Error).message);
+      }
   };
   
-  const handleLeaveTeam = () => {
-      if (!currentUser || !currentUserTeam || currentUser.id === currentUserTeam.leaderId) return;
-
-      let updatedTeam = { ...currentUserTeam, memberIds: currentUserTeam.memberIds.filter(id => id !== currentUser.id) };
-      
-      if (updatedTeam.memberIds.length === 0) {
-          teamService.deleteTeam(updatedTeam.id);
-      } else {
-          teamService.updateTeam(updatedTeam);
+  const handleLeaveTeam = async () => {
+      if (!currentUser || !currentUserTeam || myTeamInfo?.role === 'LEADER') return;
+      try {
+          await teamService.leaveTeam(currentUserTeam.id);
+          await reloadAllData();
+      } catch (err) {
+          setError((err as Error).message);
       }
-      authService.updateUserTeam(currentUser.id, null);
-      reloadAllData();
   }
 
-  const handleInvite = (userToInvite: User) => {
-      if (!currentUserTeam || !currentUser || currentUser.id !== currentUserTeam.leaderId) return;
-      
-      const existingRequest = requests.find(r => 
-          r.type === 'invite' && r.team.id === currentUserTeam.id && r.toUser.id === userToInvite.id
-      );
-      if (existingRequest) return; // Don't send duplicate invites
-
-      requestService.createRequest({
-          type: 'invite',
-          fromUser: { id: currentUser.id, name: currentUser.name },
-          toUser: { id: userToInvite.id, name: userToInvite.name },
-          team: { id: currentUserTeam.id, name: currentUserTeam.name }
-      });
-      reloadAllData();
+  const handleInvite = async (userToInvite: User) => {
+      if (!currentUserTeam || !currentUser || myTeamInfo?.role !== 'LEADER') return;
+      try {
+        await requestService.inviteUser(currentUserTeam.id, userToInvite.id);
+        await reloadAllData();
+      } catch (err) {
+          setError((err as Error).message);
+      }
   };
   
-  const handleRequestToJoin = (targetUser: User) => {
-    const targetTeam = teams.find(t => t.id === targetUser.teamId);
-    if (!targetTeam || !currentUser) return;
-
-    const leader = allUsers.find(u => u.id === targetTeam.leaderId);
-    if (!leader) return; 
-
-    const existingRequest = requests.find(r => 
-        r.type === 'request' && r.fromUser.id === currentUser.id && r.team.id === targetTeam.id
-    );
-    if (existingRequest) return; 
-
-    requestService.createRequest({
-        type: 'request',
-        fromUser: { id: currentUser.id, name: currentUser.name },
-        toUser: { id: leader.id, name: leader.name },
-        team: { id: targetTeam.id, name: targetTeam.name },
-    });
-    reloadAllData();
+  const handleRequestToJoin = async (targetUser: User) => {
+    if (!targetUser.team || !currentUser) return;
+    try {
+        await requestService.requestToJoinTeam(targetUser.team.id);
+        await reloadAllData();
+    } catch(err) {
+        setError((err as Error).message);
+    }
   };
   
-  const handleDeclineRequest = (requestId: number) => {
-      requestService.deleteRequest(requestId);
-      reloadAllData();
-  }
-  
-  const proceedWithTeamChange = (request: Request) => {
-      const userToJoinId = request.type === 'invite' ? request.toUser.id : request.fromUser.id;
-      const teamToJoinId = request.team.id;
-      
-      const userToJoin = allUsers.find(u => u.id === userToJoinId);
-      const teamToJoin = teams.find(t => t.id === teamToJoinId);
-
-      if (!userToJoin || !teamToJoin) return;
-      
-      // 1. Handle user leaving their old team
-      const userOldTeam = teams.find(t => t.id === userToJoin.teamId);
-      if (userOldTeam) {
-          if (userOldTeam.leaderId === userToJoin.id) { // They were a leader
-              teamService.deleteTeam(userOldTeam.id);
-              userOldTeam.memberIds.forEach(memberId => {
-                  if (memberId !== userToJoin.id) authService.updateUserTeam(memberId, null);
-              });
-          } else { // They were a member
-              const updatedOldTeam = { ...userOldTeam, memberIds: userOldTeam.memberIds.filter(id => id !== userToJoin.id) };
-              if (updatedOldTeam.memberIds.length === 0) {
-                  teamService.deleteTeam(updatedOldTeam.id);
-              } else {
-                  teamService.updateTeam(updatedOldTeam);
-              }
-          }
-      }
-      
-      // 2. Add user to the new team
-      const updatedNewTeam = { ...teamToJoin, memberIds: [...teamToJoin.memberIds, userToJoin.id] };
-      teamService.updateTeam(updatedNewTeam);
-      authService.updateUserTeam(userToJoin.id, teamToJoin.id);
-
-      // 3. Clean up requests
-      requestService.deleteRequest(request.id); // Delete the accepted request
-      // Delete all other pending invites TO this user and requests FROM this user
-      requests.forEach(r => {
-          if ((r.type === 'invite' && r.toUser.id === userToJoin.id) || (r.type === 'request' && r.fromUser.id === userToJoin.id)) {
-              requestService.deleteRequest(r.id);
-          }
-      });
-      
-      // 4. If team is now full, delete all other requests to join it
-      if (updatedNewTeam.memberIds.length >= TEAM_SIZE_LIMIT) {
-          requests.forEach(r => {
-              if (r.type === 'request' && r.team.id === updatedNewTeam.id) {
-                  requestService.deleteRequest(r.id);
-              }
-          });
-      }
-
-      reloadAllData();
-  }
-
-  const handleAcceptRequest = (request: Request) => {
-      const userToJoinId = request.type === 'invite' ? request.toUser.id : request.fromUser.id;
-      const userToJoin = allUsers.find(u => u.id === userToJoinId);
-
-      if (!userToJoin) return;
-      
-      const userOldTeam = teams.find(t => t.id === userToJoin.teamId);
-
-      // If user is a leader of an existing team, show confirmation
-      if (userOldTeam && userOldTeam.leaderId === userToJoin.id) {
-          setConfirmationModal({
-              isOpen: true,
-              title: 'Join New Team?',
-              message: 'Are you sure you want to join this team? As you are the leader of your current team, it will be permanently deleted.',
-              onConfirm: () => {
-                  proceedWithTeamChange(request); 
-                  setConfirmationModal(prevState => ({ ...prevState, isOpen: false }));
-              },
-              isAlert: false,
-              confirmButtonText: 'Yes',
-              cancelButtonText: 'No',
-              confirmButtonClass: 'bg-fiu-blue hover:bg-fiu-gold'
-          });
-      } else {
-          // If not a leader or not on a team, proceed directly
-          proceedWithTeamChange(request);
+  const handleDeclineRequest = async (notificationId: string) => {
+      try {
+        await requestService.declineNotification(notificationId);
+        await reloadAllData();
+      } catch (err) {
+          setError((err as Error).message);
       }
   }
+
+  const handleAcceptRequest = async (notification: AppNotification, force = false) => {
+    try {
+        await requestService.acceptNotification(notification.id, force);
+        await reloadAllData();
+    } catch (err) {
+        const apiError = err as any;
+        if (apiError.code === 'HAS_TEAM_CONFIRM_REQUIRED') {
+            setConfirmationModal({
+                isOpen: true,
+                title: 'Join New Team?',
+                message: 'Are you sure you want to join this team? As you are the leader of your current team, it will be permanently deleted.',
+                onConfirm: () => {
+                    handleAcceptRequest(notification, true);
+                    setConfirmationModal(prevState => ({ ...prevState, isOpen: false }));
+                },
+                isAlert: false,
+                confirmButtonText: 'Yes, Join Team',
+                cancelButtonText: 'No',
+                confirmButtonClass: 'bg-fiu-blue hover:bg-fiu-gold'
+            });
+        } else {
+            setError(apiError.message);
+        }
+    }
+  };
+
 
   const renderView = () => {
+    if (appIsLoading) {
+        return (
+            <div className="flex justify-center items-center h-[60vh]">
+                <LoadingSpinner className="w-16 h-16" />
+            </div>
+        );
+    }
+
     if (!currentUser || view === 'auth') {
         return <Auth onLoginSuccess={handleLoginSuccess} />;
     }
@@ -295,11 +236,10 @@ const App: React.FC = () => {
         case 'dashboard':
             return <Dashboard
                         currentUser={currentUser}
-                        currentUserTeam={currentUserTeam}
+                        myTeamInfo={myTeamInfo}
                         myTeamMembers={myTeamMembers}
                         availableUsers={availableUsers}
-                        teams={teams}
-                        requests={requests}
+                        notifications={notifications}
                         matches={matches}
                         setMatches={setMatches}
                         isLoadingMatches={isLoadingMatches}
@@ -329,7 +269,7 @@ const App: React.FC = () => {
       <Header 
         currentUser={currentUser} 
         setView={setView}
-        pendingRequests={pendingRequestsForUser}
+        pendingNotifications={notifications}
         onAcceptRequest={handleAcceptRequest}
         onDeclineRequest={handleDeclineRequest}
       />

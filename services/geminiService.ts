@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import type { User, Match } from '../types';
 
@@ -42,13 +41,13 @@ export async function findTopMatches(currentUser: User, availableUsers: User[]):
 
     The event is ShellHacks, and the team size limit is 4.
 
-    Here is the profile of the user seeking a team:
+    Here is the profile of the user seeking a team (note their name is 'fullName'):
     ${JSON.stringify(currentUser)}
 
-    Here is a list of available participants:
+    Here is a list of available participants (note their names are 'fullName'):
     ${JSON.stringify(availableUsers)}
 
-    Analyze the list and return the top 3 best matches for the user. For each match, provide a brief, one-sentence justification explaining why they are a good fit. Do not match the user with themselves. Ensure the returned 'id' for each match corresponds exactly to the id from the provided participant list.
+    Analyze the list and return the top 3 best matches for the user. For each match, provide a brief, one-sentence justification explaining why they are a good fit. Do not match the user with themselves. Ensure the returned 'id' for each match corresponds exactly to the id from the provided participant list and that you return 'fullName'.
     `;
 
   try {
@@ -63,7 +62,7 @@ export async function findTopMatches(currentUser: User, availableUsers: User[]):
             type: Type.OBJECT,
             properties: {
               id: { type: Type.NUMBER },
-              name: { type: Type.STRING },
+              fullName: { type: Type.STRING },
               major: { type: Type.STRING },
               skills: { 
                   type: Type.ARRAY,
@@ -71,7 +70,7 @@ export async function findTopMatches(currentUser: User, availableUsers: User[]):
               },
               justification: { type: Type.STRING },
             },
-            required: ["id", "name", "major", "skills", "justification"]
+            required: ["id", "fullName", "major", "skills", "justification"]
           },
         },
       },

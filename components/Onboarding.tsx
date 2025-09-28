@@ -9,7 +9,7 @@ interface OnboardingProps {
 
 const Onboarding: React.FC<OnboardingProps> = ({ onOnboardingComplete }) => {
   const [formData, setFormData] = useState({
-    name: '',
+    fullName: '',
     major: '',
     skills: '',
     interests: '',
@@ -47,12 +47,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onOnboardingComplete }) => {
     e.preventDefault();
     const newUser: User = {
       id: Date.now(),
-      name: formData.name,
+      fullName: formData.fullName,
       major: formData.major,
       skills: formData.skills.split(',').map(s => s.trim()).filter(Boolean),
       interests: formData.interests,
       projectIdea: formData.projectIdea,
-      // Fix: Add missing properties to satisfy the User type.
       email: '',
       academicYear: 'Freshman',
       isOpenToTeams: true,
@@ -68,8 +67,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onOnboardingComplete }) => {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-shell-text-secondary mb-1">Full Name</label>
-            <input type="text" name="name" id="name" required value={formData.name} onChange={handleInputChange} className="w-full bg-shell-bg border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent" />
+            <label htmlFor="fullName" className="block text-sm font-medium text-shell-text-secondary mb-1">Full Name</label>
+            <input type="text" name="fullName" id="fullName" required value={formData.fullName} onChange={handleInputChange} className="w-full bg-shell-bg border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent" />
           </div>
           <div>
             <label htmlFor="major" className="block text-sm font-medium text-shell-text-secondary mb-1">Major / Area of Study</label>

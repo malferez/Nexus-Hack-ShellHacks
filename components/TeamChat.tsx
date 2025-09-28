@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import type { User, ChatMessage, Team } from '../types';
 import * as chatService from '../services/chatService';
 import { Avatar } from './Avatar';
+import { LoadingSpinner } from './LoadingSpinner';
 
 interface TeamChatProps {
     myTeamMembers: User[];
@@ -13,16 +13,23 @@ interface TeamChatProps {
 const TeamChat: React.FC<TeamChatProps> = ({ myTeamMembers, currentUser, currentUserTeam }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [newMessage, setNewMessage] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const teamId = currentUserTeam?.id;
     
     useEffect(() => {
         if (teamId) {
-            const history = chatService.getMessages(teamId.toString());
-            setMessages(history);
+            setIsLoading(true);
+            setError(null);
+            chatService.getMessages(teamId)
+                .then(history => setMessages(history))
+                .catch(() => setError("Failed to load chat history."))
+                .finally(() => setIsLoading(false));
         } else {
             setMessages([]);
+            setIsLoading(false);
         }
     }, [teamId]);
 
@@ -30,22 +37,20 @@ const TeamChat: React.FC<TeamChatProps> = ({ myTeamMembers, currentUser, current
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    const handleSendMessage = (e: React.FormEvent) => {
+    const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newMessage.trim() || !teamId) return;
 
-        const messageData = {
-            sender: {
-                id: currentUser.id,
-                name: currentUser.name,
-                profilePictureUrl: currentUser.profilePictureUrl,
-            },
-            text: newMessage,
-        };
+        const content = newMessage;
+        setNewMessage(''); // Optimistically clear input
 
-        const savedMessage = chatService.sendMessage(teamId.toString(), messageData);
-        setMessages(prevMessages => [...prevMessages, savedMessage]);
-        setNewMessage('');
+        try {
+            const savedMessage = await chatService.sendMessage(teamId, content);
+            setMessages(prevMessages => [...prevMessages, savedMessage]);
+        } catch (err) {
+            setError("Failed to send message.");
+            setNewMessage(content); // Restore input on failure
+        }
     };
     
     if (!currentUserTeam) {
@@ -62,25 +67,27 @@ const TeamChat: React.FC<TeamChatProps> = ({ myTeamMembers, currentUser, current
             <div className="p-4 border-b border-fiu-blue">
                 <h2 className="text-2xl font-bold text-shell-text">Team Chat: {currentUserTeam.name}</h2>
                 <p className="text-shell-text-secondary">
-                    {myTeamMembers.map(m => m.name).join(', ')}
+                    {myTeamMembers.map(m => m.fullName).join(', ')}
                 </p>
             </div>
             
             <div className="flex-1 p-4 overflow-y-auto space-y-4">
-                {messages.map((msg) => {
-                    const isCurrentUser = msg.sender.id === currentUser.id;
+                {isLoading && <div className="flex justify-center items-center h-full"><LoadingSpinner className="w-10 h-10" /></div>}
+                {error && <div className="text-center text-red-400">{error}</div>}
+                {!isLoading && !error && messages.map((msg) => {
+                    const isCurrentUser = msg.author.id === currentUser.id;
                     return (
                         <div key={msg.id} className={`flex items-end gap-3 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
                             {!isCurrentUser && (
-                                <Avatar src={msg.sender.profilePictureUrl} name={msg.sender.name} size="sm" />
+                                <Avatar src={msg.author.profilePictureUrl} fullName={msg.author.fullName} size="sm" />
                             )}
                             <div className={`max-w-xs lg:max-w-md p-3 rounded-lg ${isCurrentUser ? 'bg-fiu-blue' : 'bg-shell-bg'}`}>
-                                {!isCurrentUser && <p className="text-xs font-bold text-shell-accent mb-1">{msg.sender.name}</p>}
-                                <p className="text-shell-text text-sm">{msg.text}</p>
-                                <p className="text-xs text-shell-text-secondary mt-1 text-right">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                {!isCurrentUser && <p className="text-xs font-bold text-shell-accent mb-1">{msg.author.fullName}</p>}
+                                <p className="text-shell-text text-sm">{msg.content}</p>
+                                <p className="text-xs text-shell-text-secondary mt-1 text-right">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                             </div>
                             {isCurrentUser && (
-                                <Avatar src={msg.sender.profilePictureUrl} name={msg.sender.name} size="sm" />
+                                <Avatar src={currentUser.profilePictureUrl} fullName={currentUser.fullName} size="sm" />
                             )}
                         </div>
                     );

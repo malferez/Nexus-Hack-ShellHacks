@@ -13,7 +13,7 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    name: '',
+    fullName: '',
     major: '',
     academicYear: 'Freshman' as User['academicYear'],
     skills: '',
@@ -23,6 +23,7 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
     isOpenToTeams: true
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isAiLoading, setIsAiLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -48,7 +49,7 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
       setError('Please enter some skills or interests to generate ideas.');
       return;
     }
-    setIsLoading(true);
+    setIsAiLoading(true);
     setError(null);
     try {
       const ideas = await getProjectIdeas(formData.skills, formData.interests);
@@ -59,7 +60,7 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
       setError('Failed to generate ideas. Please try again.');
       console.error(e);
     } finally {
-      setIsLoading(false);
+      setIsAiLoading(false);
     }
   };
 
@@ -70,13 +71,14 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
     try {
       let user;
       if (authView === 'login') {
-        user = authService.login(formData.email, formData.password);
+        user = await authService.login(formData.email, formData.password);
       } else {
-        const { email, password, ...profileData } = formData;
-        user = authService.registerUser({
+        const { email, password, fullName, ...profileData } = formData;
+        user = await authService.registerUser({
             ...profileData,
             email,
             password,
+            fullName,
             skills: formData.skills.split(',').map(s => s.trim()).filter(Boolean),
         });
       }
@@ -105,8 +107,7 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
         await authService.requestPasswordReset(formData.email);
         setSuccessMessage('If an account with this email exists, a password reset link has been sent.');
     } catch (err) {
-        // This is unlikely to be hit with the mock service, but good practice
-        setError('An error occurred. Please try again.');
+        setError((err as Error).message || 'An error occurred. Please try again.');
     } finally {
         setIsLoading(false);
     }
@@ -173,8 +174,8 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
             <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label htmlFor="name" className="block text-sm font-medium text-shell-text-secondary mb-1">Full Name</label>
-                        <input type="text" name="name" id="name" required value={formData.name} onChange={handleInputChange} className="w-full bg-shell-bg border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent" />
+                        <label htmlFor="fullName" className="block text-sm font-medium text-shell-text-secondary mb-1">Full Name</label>
+                        <input type="text" name="fullName" id="fullName" required value={formData.fullName} onChange={handleInputChange} className="w-full bg-shell-bg border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent" />
                     </div>
                     <div>
                         <label htmlFor="major" className="block text-sm font-medium text-shell-text-secondary mb-1">Major / Area of Study</label>
@@ -202,8 +203,8 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
                 <div>
                     <div className="flex justify-between items-center mb-1">
                         <label htmlFor="projectIdea" className="block text-sm font-medium text-shell-text-secondary">Project Ideas</label>
-                        <button type="button" onClick={handleGenerateIdeas} disabled={isLoading} className="text-sm text-shell-accent hover:underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
-                           {isLoading && !error ? <><LoadingSpinner className="w-4 h-4 mr-2" /> Generating...</> : '✨ Get AI Ideas'}
+                        <button type="button" onClick={handleGenerateIdeas} disabled={isAiLoading} className="text-sm text-shell-accent hover:underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
+                           {isAiLoading ? <><LoadingSpinner className="w-4 h-4 mr-2" /> Generating...</> : '✨ Get AI Ideas'}
                         </button>
                     </div>
                   <textarea name="projectIdea" id="projectIdea" rows={4} value={formData.projectIdea} onChange={handleInputChange} className="w-full bg-shell-bg border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent" placeholder="Describe a project you'd like to build, or use the AI generator!"></textarea>

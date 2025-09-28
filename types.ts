@@ -1,17 +1,19 @@
-
 export interface User {
   id: number;
-  name:string;
+  fullName: string;
   email: string;
-  password?: string; // Only used for registration, should not be stored in client state
+  password?: string;
   major: string;
   academicYear: 'Freshman' | 'Sophomore' | 'Junior' | 'Senior' | 'Graduate';
   skills: string[];
   interests: string;
   projectIdea: string;
-  profilePictureUrl?: string; // base64 URL
+  profilePictureUrl?: string;
   isOpenToTeams: boolean;
-  teamId?: number | null;
+  team?: {
+    id: number;
+    name: string;
+  } | null;
 }
 
 export interface Team {
@@ -21,42 +23,54 @@ export interface Team {
   memberIds: number[];
 }
 
+export interface MyTeamInfo {
+    team: Team;
+    role: 'LEADER' | 'MEMBER';
+}
+
 export interface Match {
   id: number;
-  name: string;
+  fullName: string;
   major: string;
   skills: string[];
   justification: string;
 }
 
 export interface ChatMessage {
-  id: number;
-  sender: {
+  id: string; // API uses string IDs
+  author: {
     id: number;
-    name: string;
+    fullName: string;
     profilePictureUrl?: string;
   };
-  text: string;
-  timestamp: string;
+  content: string;
+  createdAt: string; // ISO string
 }
 
-export interface Request {
-  id: number;
-  type: 'invite' | 'request';
-  // The user who initiated the request/invite
-  fromUser: {
-    id: number;
-    name: string;
-  };
-  // The user who receives the invite, or the leader of the team receiving the request
-  toUser: {
-    id: number;
-    name: string;
-  };
-  // The team involved in the transaction
+// Represents an invitation for ME to join a team
+export interface Invite {
+  id: string;
   team: {
     id: number;
     name: string;
   };
-  status: 'pending';
+  status: 'PENDING';
 }
+
+// Represents a request from another user to join MY team
+export interface JoinRequest {
+    id: string;
+    team: {
+        id: number;
+        name: string;
+    };
+    inviter: {
+        id: number;
+        fullName: string;
+    };
+}
+
+// A unified type for the UI
+export type AppNotification =
+  | ({ type: 'invite' } & Invite)
+  | ({ type: 'request' } & JoinRequest);
