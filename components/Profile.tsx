@@ -11,7 +11,11 @@ interface ProfileProps {
 }
 
 const Profile: React.FC<ProfileProps> = ({ user, onUserUpdate, onLogout }) => {
-    const [formData, setFormData] = useState(user);
+    const [formData, setFormData] = useState({
+        ...user,
+        skills: Array.isArray(user.skills) ? user.skills.join(', ') : '',
+        interests: Array.isArray(user.interests) ? user.interests.join(', ') : '',
+    });
     const [isLoading, setIsLoading] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -41,13 +45,13 @@ const Profile: React.FC<ProfileProps> = ({ user, onUserUpdate, onLogout }) => {
         setIsLoading(true);
         setSuccessMessage(null);
         try {
-            const skillsAsArray = Array.isArray(formData.skills) 
-                ? formData.skills 
-                : String(formData.skills).split(',').map(s => s.trim()).filter(Boolean);
+            const skillsAsArray = String(formData.skills).split(',').map(s => s.trim()).filter(Boolean);
+            const interestsAsArray = String(formData.interests).split(/[,\\n]/).map(s => s.trim()).filter(Boolean);
 
             const updatedUser = await authService.updateUser({
                 ...formData,
                 skills: skillsAsArray,
+                interests: interestsAsArray,
             });
             onUserUpdate(updatedUser);
             setSuccessMessage("Profile updated successfully!");
@@ -97,15 +101,15 @@ const Profile: React.FC<ProfileProps> = ({ user, onUserUpdate, onLogout }) => {
                 </div>
                 <div>
                   <label htmlFor="skills" className="block text-sm font-medium text-shell-text-secondary mb-1">Skills (comma-separated)</label>
-                  <input type="text" name="skills" id="skills" required placeholder="e.g., React, Python, Figma" value={Array.isArray(formData.skills) ? formData.skills.join(', ') : formData.skills} onChange={handleInputChange} className="w-full bg-shell-bg border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent" />
+                  <input type="text" name="skills" id="skills" required placeholder="e.g., React, Python, Figma" value={formData.skills} onChange={handleInputChange} className="w-full bg-shell-bg border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent" />
                 </div>
                  <div>
-                  <label htmlFor="interests" className="block text-sm font-medium text-shell-text-secondary mb-1">Hobbies & Interests</label>
+                  <label htmlFor="interests" className="block text-sm font-medium text-shell-text-secondary mb-1">Hobbies & Interests (comma or new-line separated)</label>
                   <textarea name="interests" id="interests" rows={3} required value={formData.interests} onChange={handleInputChange} className="w-full bg-shell-bg border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent"></textarea>
                 </div>
                  <div>
-                  <label htmlFor="projectIdea" className="block text-sm font-medium text-shell-text-secondary mb-1">Project Idea</label>
-                  <textarea name="projectIdea" id="projectIdea" rows={4} value={formData.projectIdea} onChange={handleInputChange} className="w-full bg-shell-bg border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent"></textarea>
+                  <label htmlFor="bio" className="block text-sm font-medium text-shell-text-secondary mb-1">Project Idea / Bio</label>
+                  <textarea name="bio" id="bio" rows={4} value={formData.bio} onChange={handleInputChange} className="w-full bg-shell-bg border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent"></textarea>
                 </div>
                 
                  <div className="flex items-center space-x-3 bg-shell-bg p-3 rounded-md">

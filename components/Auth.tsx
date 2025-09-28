@@ -18,7 +18,7 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
     academicYear: 'Freshman' as User['academicYear'],
     skills: '',
     interests: '',
-    projectIdea: '',
+    bio: '',
     profilePictureUrl: '',
     isOpenToTeams: true
   });
@@ -54,7 +54,7 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
     try {
       const ideas = await getProjectIdeas(formData.skills, formData.interests);
       if (ideas && ideas.length > 0) {
-        setFormData(prev => ({ ...prev, projectIdea: "- " + ideas.join('\n- ') }));
+        setFormData(prev => ({ ...prev, bio: "- " + ideas.join('\n- ') }));
       }
     } catch (e) {
       setError('Failed to generate ideas. Please try again.');
@@ -80,6 +80,7 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
             password,
             fullName,
             skills: formData.skills.split(',').map(s => s.trim()).filter(Boolean),
+            interests: formData.interests.split(/[,\\n]/).map(s => s.trim()).filter(Boolean), // Backend expects an array
         });
       }
       onLoginSuccess(user);
@@ -197,17 +198,17 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
                   <input type="text" name="skills" id="skills" required placeholder="e.g., React, Python, Figma" value={formData.skills} onChange={handleInputChange} className="w-full bg-shell-bg border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent" />
                 </div>
                 <div>
-                  <label htmlFor="interests" className="block text-sm font-medium text-shell-text-secondary mb-1">Hobbies & Interests</label>
+                  <label htmlFor="interests" className="block text-sm font-medium text-shell-text-secondary mb-1">Hobbies & Interests (comma or new-line separated)</label>
                   <textarea name="interests" id="interests" rows={3} required value={formData.interests} onChange={handleInputChange} className="w-full bg-shell-bg border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent"></textarea>
                 </div>
                 <div>
                     <div className="flex justify-between items-center mb-1">
-                        <label htmlFor="projectIdea" className="block text-sm font-medium text-shell-text-secondary">Project Ideas</label>
+                        <label htmlFor="bio" className="block text-sm font-medium text-shell-text-secondary">Project Ideas / Bio</label>
                         <button type="button" onClick={handleGenerateIdeas} disabled={isAiLoading} className="text-sm text-shell-accent hover:underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
                            {isAiLoading ? <><LoadingSpinner className="w-4 h-4 mr-2" /> Generating...</> : '✨ Get AI Ideas'}
                         </button>
                     </div>
-                  <textarea name="projectIdea" id="projectIdea" rows={4} value={formData.projectIdea} onChange={handleInputChange} className="w-full bg-shell-bg border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent" placeholder="Describe a project you'd like to build, or use the AI generator!"></textarea>
+                  <textarea name="bio" id="bio" rows={4} value={formData.bio} onChange={handleInputChange} className="w-full bg-shell-bg border border-fiu-blue rounded-md p-2 text-shell-text focus:ring-shell-accent focus:border-shell-accent" placeholder="Describe a project you'd like to build, or use the AI generator!"></textarea>
                 </div>
                  <div>
                     <label htmlFor="profilePicture" className="block text-sm font-medium text-shell-text-secondary mb-1">Profile Picture (Optional)</label>

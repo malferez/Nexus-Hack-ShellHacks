@@ -108,11 +108,11 @@ const ParticipantCard: React.FC<ParticipantCardProps> = ({ user, onInvite, onReq
         </div>
         <div className="mt-4">
             <h5 className="text-sm font-semibold text-shell-text-secondary mb-1">Interests</h5>
-            <p className="text-sm text-shell-text">{user.interests}</p>
+            <p className="text-sm text-shell-text">{Array.isArray(user.interests) ? user.interests.join(', ') : user.interests}</p>
         </div>
         <div className="mt-4">
-            <h5 className="text-sm font-semibold text-shell-text-secondary mb-1">Project Idea</h5>
-            <p className="text-sm text-shell-text italic">"{user.projectIdea}"</p>
+            <h5 className="text-sm font-semibold text-shell-text-secondary mb-1">Bio / Project Idea</h5>
+            <p className="text-sm text-shell-text italic">"{user.bio}"</p>
         </div>
     </div>
   );

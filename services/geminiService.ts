@@ -37,14 +37,14 @@ export async function getProjectIdeas(skills: string, interests: string): Promis
 
 export async function findTopMatches(currentUser: User, availableUsers: User[]): Promise<Match[]> {
   const prompt = `
-    You are an expert team builder for hackathons. Your task is to find the best teammates for a user based on skill synergy, shared interests, and complementary project ideas.
+    You are an expert team builder for hackathons. Your task is to find the best teammates for a user based on skill synergy, shared interests, and complementary project ideas from their bio.
 
     The event is ShellHacks, and the team size limit is 4.
 
-    Here is the profile of the user seeking a team (note their name is 'fullName'):
+    Here is the profile of the user seeking a team (note their name is 'fullName' and project ideas are in 'bio'):
     ${JSON.stringify(currentUser)}
 
-    Here is a list of available participants (note their names are 'fullName'):
+    Here is a list of available participants (note their names are 'fullName' and project ideas are in 'bio'):
     ${JSON.stringify(availableUsers)}
 
     Analyze the list and return the top 3 best matches for the user. For each match, provide a brief, one-sentence justification explaining why they are a good fit. Do not match the user with themselves. Ensure the returned 'id' for each match corresponds exactly to the id from the provided participant list and that you return 'fullName'.

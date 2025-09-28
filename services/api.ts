@@ -14,9 +14,8 @@ async function api<T>(method: HttpMethod, path: string, body?: unknown): Promise
     options.body = JSON.stringify(body);
   }
 
-  // The base path is not specified, so we assume the API is on the same origin.
-  // For example, a request to `/teams` will go to `https://your-domain.com/teams`.
-  const API_BASE_URL = '';
+  // The base path is now set to the user's local backend development server.
+  const API_BASE_URL = 'http://localhost:4000';
 
   const response = await fetch(`${API_BASE_URL}${path}`, options);
 
@@ -33,7 +32,7 @@ async function api<T>(method: HttpMethod, path: string, body?: unknown): Promise
     }
 
     // Create an error object with the message and code from the backend.
-    const error = new Error(errorData.message || 'An unknown API error occurred');
+    const error = new Error(errorData.message || errorData.error || 'An unknown API error occurred');
     (error as any).code = errorData.code;
     (error as any).status = response.status;
     throw error;

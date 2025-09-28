@@ -50,8 +50,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onOnboardingComplete }) => {
       fullName: formData.fullName,
       major: formData.major,
       skills: formData.skills.split(',').map(s => s.trim()).filter(Boolean),
-      interests: formData.interests,
-      projectIdea: formData.projectIdea,
+      // FIX: The user's interests should be an array of strings, and project ideas should be stored in the 'bio' field.
+      interests: formData.interests.split(/[,\\n]/).map(s => s.trim()).filter(Boolean),
+      bio: formData.projectIdea,
       email: '',
       academicYear: 'Freshman',
       isOpenToTeams: true,

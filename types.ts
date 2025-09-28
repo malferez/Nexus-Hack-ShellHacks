@@ -6,8 +6,8 @@ export interface User {
   major: string;
   academicYear: 'Freshman' | 'Sophomore' | 'Junior' | 'Senior' | 'Graduate';
   skills: string[];
-  interests: string;
-  projectIdea: string;
+  interests: string[];
+  bio: string;
   profilePictureUrl?: string;
   isOpenToTeams: boolean;
   team?: {
